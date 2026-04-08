@@ -1,33 +1,17 @@
 export class EmbeddingService {
-  private model: any = null;
-  private useTransformer: boolean = false;
+  // private useTransformer: boolean = false;
   
   async initialize() {
-    try {
-      // Try to load transformers.js
-      const { pipeline } = await import('@xenova/transformers');
-      this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-      this.useTransformer = true;
-    } catch (e) {
-      console.warn('Transformers.js not available, using fallback embeddings');
-    }
+    // Для простоты используем fallback, transformers не обязателен
+    // this.useTransformer = false;
   }
   
   async embed(text: string): Promise<number[]> {
-    if (this.useTransformer && this.model) {
-      return this.transformerEmbed(text);
-    } else {
-      return this.fallbackEmbed(text);
-    }
-  }
-  
-  private async transformerEmbed(text: string): Promise<number[]> {
-    const result = await this.model(text, { pooling: 'mean', normalize: true });
-    return Array.from(result.data);
+    return this.fallbackEmbed(text);
   }
   
   private fallbackEmbed(text: string): number[] {
-    // Simple word-based embedding fallback
+    // Simple word-based embedding
     const words = text.toLowerCase().split(/\s+/);
     const vector = new Array(384).fill(0);
     
@@ -36,7 +20,12 @@ export class EmbeddingService {
       'машины': 3, 'трафик': 4, 'пробка': 5,
       'светофор': 6, 'красный': 7, 'зеленый': 8,
       'поворот': 9, 'право': 10, 'лево': 11,
-      'стоп': 12, 'движение': 13, 'дорога': 14
+      'стоп': 12, 'движение': 13, 'дорога': 14,
+      'speed': 0, 'fast': 1, 'slow': 2,
+      'cars': 3, 'traffic': 4, 'jam': 5,
+      'light': 6, 'red': 7, 'green': 8,
+      'turn': 9, 'right': 10, 'left': 11,
+      'stop': 12, 'move': 13, 'road': 14
     };
     
     words.forEach(word => {

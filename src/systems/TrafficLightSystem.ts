@@ -3,49 +3,49 @@ import { System } from '../ecs/System';
 
 export class TrafficLightSystem extends System {
   private globalTimer: number = 0;
+  private currentPhase: number = 0;
   
   update(world: World, deltaTime: number) {
-    this.globalTimer += deltaTime * 16.67; // Convert to milliseconds
+    this.globalTimer += deltaTime * 16.67;
     
-    const lights = world.getEntitiesWithComponent('trafficLight');
-    const phases = new Set<number>();
+    const cycleTime = 24000; // 24 секунды полный цикл
+    const greenTime = 6000;
+    const yellowTime = 2000;
     
-    // Collect all phases
-    for (const light of lights) {
-      const lightComp = light.getComponent('trafficLight');
-      if (lightComp) {
-        phases.add(lightComp.phase);
-      }
+    // Определяем текущую фазу
+    const phaseTime = this.globalTimer % cycleTime;
+    
+    if (phaseTime < greenTime) {
+      this.currentPhase = 0;
+    } else if (phaseTime < greenTime + yellowTime) {
+      this.currentPhase = -1; // yellow для всех
+    } else if (phaseTime < greenTime * 2 + yellowTime) {
+      this.currentPhase = 1;
+    } else if (phaseTime < greenTime * 2 + yellowTime * 2) {
+      this.currentPhase = -1;
+    } else if (phaseTime < greenTime * 3 + yellowTime * 2) {
+      this.currentPhase = 2;
+    } else if (phaseTime < greenTime * 3 + yellowTime * 3) {
+      this.currentPhase = -1;
+    } else {
+      this.currentPhase = 3;
     }
     
-    // Calculate current active phase
-    const phaseCount = phases.size;
-    const cycleTime = 20000; // 20 seconds per cycle
-    const activePhase = phaseCount > 0 
-      ? Math.floor((this.globalTimer / cycleTime) * phaseCount) % phaseCount 
-      : 0;
+    const lights = world.getEntitiesWithComponent('trafficLight');
     
-    // Update each traffic light
     for (const light of lights) {
       const lightComp = light.getComponent('trafficLight');
-      if (!lightComp) continue;
+      if (!lightComp || !lightComp.enabled) continue;
       
-      const phaseTime = this.globalTimer % cycleTime;
-      
-      if (lightComp.phase === activePhase) {
-        // This phase is active
-        if (phaseTime < lightComp.greenDuration) {
-          lightComp.state = 'green';
-        } else if (phaseTime < lightComp.greenDuration + lightComp.yellowDuration) {
-          lightComp.state = 'yellow';
-        } else {
-          lightComp.state = 'red';
-        }
+      if (this.currentPhase === -1) {
+        lightComp.state = 'yellow';
+      } else if (lightComp.phase === this.currentPhase) {
+        lightComp.state = 'green';
       } else {
         lightComp.state = 'red';
       }
       
-      // Update sprite based on state
+      // Обновляем спрайт
       const sprite = light.getComponent('sprite');
       if (sprite) {
         sprite.texture = `traffic-light-${lightComp.state}`;
