@@ -1,6 +1,7 @@
 import { World, Entity } from '../../core/ecs';
 import { TransformComponent, LaneComponent, SpriteComponent } from '../../components';
 import { LaneConfig } from '../../config/intersection.config';
+import { ROAD } from '../../config/constants';
 
 export class LaneFactory {
     constructor(private world: World) { }
@@ -23,33 +24,50 @@ export class LaneFactory {
             this.createArrow(config);
         }
 
-        console.log('Lane created:', config.direction, config.isEntry ? 'entry' : 'exit');
-
         return lane;
     }
 
     private createArrow(config: LaneConfig): void {
         const arrow = this.world.createEntity();
-        const offset = 70;
+        const offset = 80;
         let arrowX = config.x;
         let arrowY = config.y;
 
+        // Стрелка перед перекрестком
         switch (config.direction) {
-            case 'north': arrowY += offset; break;
-            case 'south': arrowY -= offset; break;
-            case 'east': arrowX -= offset; break;
-            case 'west': arrowX += offset; break;
+            case 'north':
+                arrowY = config.y + offset;
+                break;
+            case 'south':
+                arrowY = config.y - offset;
+                break;
+            case 'east':
+                arrowX = config.x - offset;
+                break;
+            case 'west':
+                arrowX = config.x + offset;
+                break;
         }
 
         arrow
             .addComponent(new TransformComponent(arrowX, arrowY, 0))
-            .addComponent(new SpriteComponent(`arrow-${config.arrowType}`, 28, 28));
+            .addComponent(new SpriteComponent(`arrow-${config.arrowType}`, 32, 32));
+    }
 
-        const transform = arrow.getComponent<TransformComponent>('transform');
-        if (transform) {
-            transform.scale = { x: 1.2, y: 1.2 };
+    private renderSpeedLimit(config: LaneConfig): void {
+        const speedSign = this.world.createEntity();
+        let signX = config.x;
+        let signY = config.y;
+        const offset = 40;
+
+        switch (config.direction) {
+            case 'north': signY = config.y - offset; break;
+            case 'south': signY = config.y + offset; break;
+            case 'east': signX = config.x + offset; break;
+            case 'west': signX = config.x - offset; break;
         }
 
-        console.log('Arrow created:', config.arrowType, 'at', arrowX, arrowY);
+        speedSign.addComponent(new TransformComponent(signX, signY, 0));
+        // Скорость будет отрендерена через Text в RenderSystem
     }
 }

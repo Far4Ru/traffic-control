@@ -1,5 +1,5 @@
 import { World, System } from '../core/ecs';
-import { TrafficLightComponent } from '../components';
+import { TrafficLightComponent, SpriteComponent } from '../components';
 import { TRAFFIC } from '../config/constants';
 
 export class TrafficLightSystem extends System {
@@ -12,36 +12,14 @@ export class TrafficLightSystem extends System {
 
   update(world: World, deltaTime: number): void {
     this.globalTimer += deltaTime * 16.67;
-    this.updatePhase();
 
-    const lights = world.getEntitiesWithComponent('trafficLight');
-
-    for (const light of lights) {
-      const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
-      if (!lightComp) continue;
-
-      if (!lightComp.enabled) {
-        lightComp.setState('red');
-        continue;
-      }
-
-      if (this.currentPhase === -1) {
-        lightComp.setState('yellow');
-      } else if (lightComp.phase === this.currentPhase) {
-        lightComp.setState('green');
-      } else {
-        lightComp.setState('red');
-      }
-    }
-  }
-
-  private updatePhase(): void {
     const cycleTime = TRAFFIC.CYCLE_TIME;
     const greenTime = TRAFFIC.GREEN_DURATION;
     const yellowTime = TRAFFIC.YELLOW_DURATION;
 
     const phaseTime = this.globalTimer % cycleTime;
 
+    // Определяем текущую фазу
     if (phaseTime < greenTime) {
       this.currentPhase = 0;
     } else if (phaseTime < greenTime + yellowTime) {
@@ -56,6 +34,29 @@ export class TrafficLightSystem extends System {
       this.currentPhase = -1;
     } else {
       this.currentPhase = 3;
+    }
+
+    const lights = world.getEntitiesWithComponent('trafficLight');
+
+    for (const light of lights) {
+      const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
+      if (!lightComp) continue;
+
+      if (!lightComp.enabled) {
+        lightComp.state = 'red';
+      } else if (this.currentPhase === -1) {
+        lightComp.state = 'yellow';
+      } else if (lightComp.phase === this.currentPhase) {
+        lightComp.state = 'green';
+      } else {
+        lightComp.state = 'red';
+      }
+
+      // Обновляем спрайт
+      const sprite = light.getComponent<SpriteComponent>('sprite');
+      if (sprite) {
+        sprite.texture = `traffic-light-${lightComp.state}`;
+      }
     }
   }
 }

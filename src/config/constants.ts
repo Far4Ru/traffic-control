@@ -7,9 +7,9 @@ export const SCENE = {
 } as const;
 
 export const ROAD = {
-    LANE_WIDTH: 32,
+    LANE_WIDTH: 40,
     TOTAL_LANES: 4,
-    ROAD_WIDTH: 128,
+    ROAD_WIDTH: 160,
     ROAD_START: 200,
     ROAD_END: 824
 } as const;
@@ -29,13 +29,6 @@ export const COLLISION = {
     TURN_START_DISTANCE: 50,
     TURN_END_DISTANCE: 130,
     TURN_SPEED: 0.025
-} as const;
-
-export const DIRECTIONS = {
-    NORTH: 'north',
-    SOUTH: 'south',
-    EAST: 'east',
-    WEST: 'west'
 } as const;
 
 export const PHASE_MAP: Record<string, number> = {

@@ -19,39 +19,59 @@ export interface TrafficLightConfig {
     phase: number;
 }
 
+const LW = ROAD.LANE_WIDTH;
+const CX = SCENE.CENTER_X;
+const CY = SCENE.CENTER_Y;
+
+// Правостороннее движение
+// Север -> вниз (southbound), Юг -> вверх (northbound)
+// Восток -> влево (westbound), Запад -> вправо (eastbound)
+
 export const LANE_CONFIGS: LaneConfig[] = [
-    // Север (въезд)
-    { x: SCENE.CENTER_X - ROAD.LANE_WIDTH / 2, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'north', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
-    { x: SCENE.CENTER_X - ROAD.LANE_WIDTH * 1.5, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'north', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
-    // Север (выезд)
-    { x: SCENE.CENTER_X + ROAD.LANE_WIDTH / 2, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'north', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
-    { x: SCENE.CENTER_X + ROAD.LANE_WIDTH * 1.5, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'north', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
+    // ===== СЕВЕР (движение ВНИЗ, к центру) =====
+    // Правая полоса (ближе к центру дороги) - прямо и направо
+    { x: CX - LW / 2, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'north', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
+    // Левая полоса (дальше от центра) - прямо и налево
+    { x: CX - LW * 1.5, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'north', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
+    // Выездные полосы (для машин с юга)
+    { x: CX + LW / 2, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'north', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
+    { x: CX + LW * 1.5, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'north', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
 
-    // Юг (въезд)
-    { x: SCENE.CENTER_X + ROAD.LANE_WIDTH / 2, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'south', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
-    { x: SCENE.CENTER_X + ROAD.LANE_WIDTH * 1.5, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'south', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
-    // Юг (выезд)
-    { x: SCENE.CENTER_X - ROAD.LANE_WIDTH / 2, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'south', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
-    { x: SCENE.CENTER_X - ROAD.LANE_WIDTH * 1.5, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'south', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
+    // ===== ЮГ (движение ВВЕРХ, к центру) =====
+    // Правая полоса (ближе к центру) - прямо и направо
+    { x: CX + LW / 2, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'south', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
+    // Левая полоса - прямо и налево
+    { x: CX + LW * 1.5, y: ROAD.ROAD_END, rotation: -Math.PI / 2, direction: 'south', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
+    // Выездные
+    { x: CX - LW / 2, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'south', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
+    { x: CX - LW * 1.5, y: ROAD.ROAD_START, rotation: Math.PI / 2, direction: 'south', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
 
-    // Восток (въезд)
-    { x: ROAD.ROAD_END, y: SCENE.CENTER_Y + ROAD.LANE_WIDTH / 2, rotation: Math.PI, direction: 'east', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
-    { x: ROAD.ROAD_END, y: SCENE.CENTER_Y + ROAD.LANE_WIDTH * 1.5, rotation: Math.PI, direction: 'east', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
-    // Восток (выезд)
-    { x: ROAD.ROAD_START, y: SCENE.CENTER_Y - ROAD.LANE_WIDTH / 2, rotation: 0, direction: 'east', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
-    { x: ROAD.ROAD_START, y: SCENE.CENTER_Y - ROAD.LANE_WIDTH * 1.5, rotation: 0, direction: 'east', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
+    // ===== ВОСТОК (движение ВЛЕВО, к центру) =====
+    // Правая полоса (ближе к центру)
+    { x: ROAD.ROAD_END, y: CY + LW / 2, rotation: Math.PI, direction: 'east', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
+    // Левая полоса
+    { x: ROAD.ROAD_END, y: CY + LW * 1.5, rotation: Math.PI, direction: 'east', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
+    // Выездные
+    { x: ROAD.ROAD_START, y: CY - LW / 2, rotation: 0, direction: 'east', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
+    { x: ROAD.ROAD_START, y: CY - LW * 1.5, rotation: 0, direction: 'east', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
 
-    // Запад (въезд)
-    { x: ROAD.ROAD_START, y: SCENE.CENTER_Y - ROAD.LANE_WIDTH / 2, rotation: 0, direction: 'west', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
-    { x: ROAD.ROAD_START, y: SCENE.CENTER_Y - ROAD.LANE_WIDTH * 1.5, rotation: 0, direction: 'west', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
-    // Запад (выезд)
-    { x: ROAD.ROAD_END, y: SCENE.CENTER_Y + ROAD.LANE_WIDTH / 2, rotation: Math.PI, direction: 'west', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
-    { x: ROAD.ROAD_END, y: SCENE.CENTER_Y + ROAD.LANE_WIDTH * 1.5, rotation: Math.PI, direction: 'west', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
+    // ===== ЗАПАД (движение ВПРАВО, к центру) =====
+    // Правая полоса
+    { x: ROAD.ROAD_START, y: CY - LW / 2, rotation: 0, direction: 'west', isEntry: true, side: 'right', arrowType: 'straight-right', speedLimit: 2.5 },
+    // Левая полоса
+    { x: ROAD.ROAD_START, y: CY - LW * 1.5, rotation: 0, direction: 'west', isEntry: true, side: 'left', arrowType: 'straight-left', speedLimit: 2.0 },
+    // Выездные
+    { x: ROAD.ROAD_END, y: CY + LW / 2, rotation: Math.PI, direction: 'west', isEntry: false, side: 'right', arrowType: 'straight', speedLimit: 2.5 },
+    { x: ROAD.ROAD_END, y: CY + LW * 1.5, rotation: Math.PI, direction: 'west', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
 ];
 
 export const TRAFFIC_LIGHT_CONFIGS: TrafficLightConfig[] = [
-    { x: SCENE.CENTER_X - ROAD.LANE_WIDTH * 2, y: 440, rotation: 0, phase: 0 },
-    { x: SCENE.CENTER_X + ROAD.LANE_WIDTH * 2, y: 584, rotation: Math.PI, phase: 1 },
-    { x: 584, y: SCENE.CENTER_Y + ROAD.LANE_WIDTH * 2, rotation: Math.PI / 2, phase: 2 },
-    { x: 440, y: SCENE.CENTER_Y - ROAD.LANE_WIDTH * 2, rotation: -Math.PI / 2, phase: 3 },
+    // Светофор для севера (перед перекрестком, смотрит на север)
+    { x: CX - LW * 2, y: CY - LW * 3, rotation: 0, phase: 0 },
+    // Светофор для юга
+    { x: CX + LW * 2, y: CY + LW * 3, rotation: Math.PI, phase: 1 },
+    // Светофор для востока
+    { x: CX + LW * 3, y: CY + LW * 2, rotation: Math.PI / 2, phase: 2 },
+    // Светофор для запада
+    { x: CX - LW * 3, y: CY - LW * 2, rotation: -Math.PI / 2, phase: 3 },
 ];

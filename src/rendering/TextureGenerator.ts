@@ -37,78 +37,112 @@ export class TextureGenerator {
 
             const texture = this.renderer.generateTexture(g);
             Texture.addToCache(texture, `car-${name}`);
-            console.log('Generated texture:', `car-${name}`);
             g.destroy();
         }
     }
 
     private generateRoadTexture(): void {
         const g = new Graphics();
+        const LW = ROAD.LANE_WIDTH;
+        const CX = SCENE.CENTER_X;
+        const CY = SCENE.CENTER_Y;
 
-        // Фон
-        g.beginFill(0x2d5016); // Зеленый газон
+        // Фон - газон
+        g.beginFill(0x2d5016);
         g.drawRect(0, 0, SCENE.WIDTH, SCENE.HEIGHT);
         g.endFill();
 
-        // Дорога
-        g.beginFill(0x444444);
-        g.drawRect(0, SCENE.CENTER_Y - ROAD.LANE_WIDTH * 2, SCENE.WIDTH, ROAD.ROAD_WIDTH);
-        g.drawRect(SCENE.CENTER_X - ROAD.LANE_WIDTH * 2, 0, ROAD.ROAD_WIDTH, SCENE.HEIGHT);
+        // Асфальт
+        g.beginFill(0x555555);
+        // Горизонтальная дорога
+        g.drawRect(0, CY - LW * 2, SCENE.WIDTH, LW * 4);
+        // Вертикальная дорога
+        g.drawRect(CX - LW * 2, 0, LW * 4, SCENE.HEIGHT);
         g.endFill();
 
-        this.addRoadMarkings(g);
+        // Тротуары/обочины
+        g.beginFill(0x666666);
+        g.drawRect(0, CY - LW * 2 - 5, SCENE.WIDTH, 5);
+        g.drawRect(0, CY + LW * 2, SCENE.WIDTH, 5);
+        g.drawRect(CX - LW * 2 - 5, 0, 5, SCENE.HEIGHT);
+        g.drawRect(CX + LW * 2, 0, 5, SCENE.HEIGHT);
+        g.endFill();
+
+        // Разметка
+        g.lineStyle(2, 0xffffff, 1);
+
+        // Центральные линии (сплошные)
+        g.moveTo(0, CY);
+        g.lineTo(SCENE.WIDTH, CY);
+        g.moveTo(CX, 0);
+        g.lineTo(CX, SCENE.HEIGHT);
+
+        // Линии между полосами (прерывистые)
+        g.lineStyle(2, 0xffffff, 0.8);
+
+        // Горизонтальные разделители
+        for (let i = 0; i < SCENE.WIDTH; i += 50) {
+            g.moveTo(i, CY - LW);
+            g.lineTo(i + 25, CY - LW);
+            g.moveTo(i, CY + LW);
+            g.lineTo(i + 25, CY + LW);
+        }
+
+        // Вертикальные разделители
+        for (let i = 0; i < SCENE.HEIGHT; i += 50) {
+            g.moveTo(CX - LW, i);
+            g.lineTo(CX - LW, i + 25);
+            g.moveTo(CX + LW, i);
+            g.lineTo(CX + LW, i + 25);
+        }
+
+        // Краевые линии (сплошные)
+        g.lineStyle(2, 0xffffff, 1);
+        g.moveTo(0, CY - LW * 2);
+        g.lineTo(SCENE.WIDTH, CY - LW * 2);
+        g.moveTo(0, CY + LW * 2);
+        g.lineTo(SCENE.WIDTH, CY + LW * 2);
+        g.moveTo(CX - LW * 2, 0);
+        g.lineTo(CX - LW * 2, SCENE.HEIGHT);
+        g.moveTo(CX + LW * 2, 0);
+        g.lineTo(CX + LW * 2, SCENE.HEIGHT);
+
+        // Стоп-линии
+        g.lineStyle(4, 0xffffff, 1);
+        const stopOffset = LW * 2.5;
+        // Север
+        g.moveTo(CX - LW * 2, CY - stopOffset);
+        g.lineTo(CX + LW * 2, CY - stopOffset);
+        // Юг
+        g.moveTo(CX - LW * 2, CY + stopOffset);
+        g.lineTo(CX + LW * 2, CY + stopOffset);
+        // Запад
+        g.moveTo(CX - stopOffset, CY - LW * 2);
+        g.lineTo(CX - stopOffset, CY + LW * 2);
+        // Восток
+        g.moveTo(CX + stopOffset, CY - LW * 2);
+        g.lineTo(CX + stopOffset, CY + LW * 2);
 
         const texture = this.renderer.generateTexture(g);
         Texture.addToCache(texture, 'road-texture');
-        console.log('Generated texture: road-texture');
         g.destroy();
-    }
-
-    private addRoadMarkings(g: Graphics): void {
-        const laneW = ROAD.LANE_WIDTH;
-
-        // Центральные линии
-        g.lineStyle(2, 0xffffff, 1);
-        g.moveTo(0, SCENE.CENTER_Y);
-        g.lineTo(SCENE.WIDTH, SCENE.CENTER_Y);
-        g.moveTo(SCENE.CENTER_X, 0);
-        g.lineTo(SCENE.CENTER_X, SCENE.HEIGHT);
-
-        // Разделительные полосы
-        g.lineStyle(1, 0xffffff, 0.6);
-
-        // Горизонтальные пунктиры
-        for (let i = 0; i < SCENE.WIDTH; i += 40) {
-            g.moveTo(i, SCENE.CENTER_Y - laneW * 1.5);
-            g.lineTo(i + 20, SCENE.CENTER_Y - laneW * 1.5);
-            g.moveTo(i, SCENE.CENTER_Y + laneW * 1.5);
-            g.lineTo(i + 20, SCENE.CENTER_Y + laneW * 1.5);
-        }
-
-        // Вертикальные пунктиры
-        for (let i = 0; i < SCENE.HEIGHT; i += 40) {
-            g.moveTo(SCENE.CENTER_X - laneW * 1.5, i);
-            g.lineTo(SCENE.CENTER_X - laneW * 1.5, i + 20);
-            g.moveTo(SCENE.CENTER_X + laneW * 1.5, i);
-            g.lineTo(SCENE.CENTER_X + laneW * 1.5, i + 20);
-        }
     }
 
     private generateArrowTextures(): void {
         const arrows: Record<string, number[][][]> = {
-            'straight': [[[-8, 10], [8, 10], [0, -10]]],
-            'left': [[[10, -8], [10, 8], [-10, 0]]],
-            'right': [[[-10, -8], [-10, 8], [10, 0]]],
-            'straight-left': [[[-8, 10], [0, 10], [0, -10]], [[10, -8], [10, 0], [-10, 0]]],
-            'straight-right': [[[0, 10], [8, 10], [0, -10]], [[-10, -8], [-10, 0], [10, 0]]],
-            'all': [[[-8, 10], [8, 10], [0, -10]], [[10, -8], [10, 8], [-10, 0]], [[-10, -8], [-10, 8], [10, 0]]],
+            'straight': [[[-8, 12], [8, 12], [0, -10]]],
+            'left': [[[12, -8], [12, 8], [-10, 0]]],
+            'right': [[[-12, -8], [-12, 8], [10, 0]]],
+            'straight-left': [[[-8, 12], [0, 12], [0, -10]], [[12, -8], [12, 0], [-10, 0]]],
+            'straight-right': [[[0, 12], [8, 12], [0, -10]], [[-12, -8], [-12, 0], [10, 0]]],
+            'all': [[[-8, 12], [8, 12], [0, -10]], [[12, -8], [12, 8], [-10, 0]], [[-12, -8], [-12, 8], [10, 0]]],
         };
 
         for (const [name, polys] of Object.entries(arrows)) {
             const g = new Graphics();
 
             g.beginFill(0x1a1a2e);
-            g.drawCircle(0, 0, 16);
+            g.drawCircle(0, 0, 18);
             g.endFill();
 
             g.beginFill(0x00d2ff);
@@ -117,7 +151,6 @@ export class TextureGenerator {
 
             const texture = this.renderer.generateTexture(g);
             Texture.addToCache(texture, `arrow-${name}`);
-            console.log('Generated texture:', `arrow-${name}`);
             g.destroy();
         }
     }
@@ -129,18 +162,17 @@ export class TextureGenerator {
             const g = new Graphics();
 
             g.beginFill(0x222222);
-            g.drawRoundedRect(-30, -15, 60, 30, 5);
+            g.drawRoundedRect(-35, -18, 70, 36, 6);
             g.endFill();
 
             ['red', 'yellow', 'green'].forEach((s, i) => {
-                g.beginFill(s === state ? colors[s] : 0x444444);
-                g.drawCircle(-20 + i * 20, 0, 7);
+                g.beginFill(s === state ? colors[s] : 0x333333);
+                g.drawCircle(-24 + i * 24, 0, 8);
                 g.endFill();
             });
 
             const texture = this.renderer.generateTexture(g);
             Texture.addToCache(texture, `traffic-light-${state}`);
-            console.log('Generated texture:', `traffic-light-${state}`);
             g.destroy();
         }
     }
