@@ -4,6 +4,17 @@ export default defineConfig({
   base: '/traffic-intersection/',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pixi: ['pixi.js']
+        }
+      }
+    }
+  },
+  server: {
+    port: 5173,
+    open: true
   }
 });

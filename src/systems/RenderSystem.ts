@@ -1,151 +1,147 @@
-import { World } from '../ecs/World';
-import { System } from '../ecs/System';
+import { World, System, Entity } from '../core/ecs';
 import { Application, Sprite, Graphics, Text, Container, Texture, TextStyle } from 'pixi.js';
+import { TransformComponent, SpriteComponent, TrafficLightComponent, LaneComponent } from '../components';
 
 export class RenderSystem extends System {
-  private app: Application;
   private container: Container;
-  private spriteMap: Map<string, Sprite> = new Map();
-  
-  constructor(app: Application) {
-    super();
-    this.app = app;
+  private spriteCache: Map<string, Sprite> = new Map();
+
+  constructor(private app: Application) {
+    super(100);
     this.container = new Container();
+  }
+
+  onAttach(): void {
     this.app.stage.addChild(this.container);
   }
-  
-  update(world: World, _deltaTime: number) {
-    this.container.removeChildren();
-    
-    const roads = world.getEntitiesWithComponent('sprite').filter(e => {
-      const sprite = e.getComponent('sprite');
-      return sprite && sprite.texture?.includes('road');
-    });
-    for (const road of roads) {
-      this.renderEntity(road);
-    }
-    
-    const lanes = world.getEntitiesWithComponent('lane');
-    for (const lane of lanes) {
-      this.renderLaneArrow(lane);
-      this.renderSpeedLimit(lane);
-    }
-    
-    const lights = world.getEntitiesWithComponent('trafficLight');
-    for (const light of lights) {
-      this.renderTrafficLight(light);
-    }
-    
-    const vehicles = world.getEntitiesWithComponent('vehicle');
-    for (const vehicle of vehicles) {
-      this.renderEntity(vehicle);
-    }
+
+  onDetach(): void {
+    this.app.stage.removeChild(this.container);
+    this.container.destroy({ children: true });
   }
-  
-  private renderEntity(entity: any) {
-    const transform = entity.getComponent('transform');
-    const spriteComp = entity.getComponent('sprite');
-    
-    if (!transform || !spriteComp) return;
-    
-    let sprite: Sprite;
-    
-    if (this.spriteMap.has(entity.id)) {
-      sprite = this.spriteMap.get(entity.id)!;
-    } else {
+
+  update(world: World, _deltaTime: number): void {
+    this.container.removeChildren();
+
+    this.renderRoads(world);
+    this.renderLanes(world);
+    this.renderTrafficLights(world);
+    this.renderVehicles(world);
+  }
+
+  private renderRoads(world: World): void {
+    const roads = world.getEntitiesWithComponent('sprite')
+      .filter(e => e.getComponent<SpriteComponent>('sprite')?.texture.includes('road'));
+
+    roads.forEach(road => this.renderSprite(road));
+  }
+
+  private renderLanes(world: World): void {
+    const lanes = world.getEntitiesWithComponent('lane');
+    const arrowSprites = world.getEntitiesWithComponent('sprite')
+      .filter(e => e.getComponent<SpriteComponent>('sprite')?.texture.includes('arrow'));
+
+    lanes.forEach(lane => {
+      const laneComp = lane.getComponent<LaneComponent>('lane');
+      const transform = lane.getComponent<TransformComponent>('transform');
+      if (!laneComp || !transform) return;
+
+      this.renderSpeedLimit(transform, laneComp);
+    });
+
+    arrowSprites.forEach(arrow => this.renderSprite(arrow));
+  }
+
+  private renderTrafficLights(world: World): void {
+    const lights = world.getEntitiesWithComponent('trafficLight');
+
+    lights.forEach(light => {
+      const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
+      const transform = light.getComponent<TransformComponent>('transform');
+      const sprite = light.getComponent<SpriteComponent>('sprite');
+
+      if (!lightComp || !transform) return;
+
+      if (sprite) {
+        sprite.texture = `traffic-light-${lightComp.state}`;
+        this.renderSprite(light);
+      } else {
+        this.renderTrafficLightGraphics(transform, lightComp);
+      }
+    });
+  }
+
+  private renderVehicles(world: World): void {
+    const vehicles = world.getEntitiesWithComponent('vehicle');
+    vehicles.forEach(vehicle => this.renderSprite(vehicle));
+  }
+
+  private renderSprite(entity: Entity): void {
+    const transform = entity.getComponent<TransformComponent>('transform');
+    const spriteComp = entity.getComponent<SpriteComponent>('sprite');
+
+    if (!transform || !spriteComp || !spriteComp.visible) return;
+
+    let sprite = this.spriteCache.get(entity.id);
+
+    if (!sprite) {
       const texture = Texture.from(spriteComp.texture);
       sprite = new Sprite(texture);
-      this.spriteMap.set(entity.id, sprite);
+      sprite.anchor.set(0.5);
+      this.spriteCache.set(entity.id, sprite);
     }
-    
-    sprite.x = transform.x;
-    sprite.y = transform.y;
+
+    sprite.x = transform.position.x;
+    sprite.y = transform.position.y;
     sprite.rotation = transform.rotation;
     sprite.width = spriteComp.width;
     sprite.height = spriteComp.height;
-    sprite.anchor.set(0.5);
-    
+
     this.container.addChild(sprite);
   }
-  
-  private renderTrafficLight(light: any) {
-    const transform = light.getComponent('transform');
-    const lightComp = light.getComponent('trafficLight');
-    const spriteComp = light.getComponent('sprite');
-    
-    if (!transform || !lightComp) return;
-    
-    if (spriteComp) {
-      spriteComp.texture = `traffic-light-${lightComp.state}`;
-    }
-    
-    const container = new Graphics();
-    
-    container.beginFill(0x333333);
-    container.drawRoundedRect(-24, -12, 48, 24, 4);
-    container.endFill();
-    
+
+  private renderTrafficLightGraphics(transform: TransformComponent, lightComp: TrafficLightComponent): void {
+    const g = new Graphics();
+
+    g.beginFill(0x333333);
+    g.drawRoundedRect(-25, -12, 50, 24, 4);
+    g.endFill();
+
     const colors: Record<string, number> = {
       red: 0xff0000,
       yellow: 0xffff00,
       green: 0x00ff00
     };
-    
-    const activeColor = lightComp.state as string;
-    const positions = [-16, 0, 16];
-    
-    positions.forEach((x, i) => {
+
+    [-16, 0, 16].forEach((x, i) => {
       const state = ['red', 'yellow', 'green'][i];
-      const color = state === activeColor ? colors[state] : 0x444444;
-      
-      container.beginFill(color);
-      container.drawCircle(x, 0, 5);
-      container.endFill();
+      const color = state === lightComp.state ? colors[state] : 0x444444;
+
+      g.beginFill(color);
+      g.drawCircle(x, 0, 6);
+      g.endFill();
     });
-    
-    container.x = transform.x;
-    container.y = transform.y;
-    
-    this.container.addChild(container);
+
+    g.x = transform.position.x;
+    g.y = transform.position.y;
+    g.rotation = transform.rotation;
+
+    this.container.addChild(g);
   }
-  
-  private renderLaneArrow(lane: any) {
-    const transform = lane.getComponent('transform');
-    const laneComp = lane.getComponent('lane');
-    
-    if (!transform || !laneComp) return;
-    
-    const texture = Texture.from(`arrow-${laneComp.arrowType}`);
-    const sprite = new Sprite(texture);
-    
-    sprite.x = transform.x;
-    sprite.y = transform.y - 20;
-    sprite.width = 24;
-    sprite.height = 24;
-    sprite.anchor.set(0.5);
-    
-    this.container.addChild(sprite);
-  }
-  
-  private renderSpeedLimit(lane: any) {
-    const transform = lane.getComponent('transform');
-    const laneComp = lane.getComponent('lane');
-    
-    if (!transform || !laneComp) return;
-    
+
+  private renderSpeedLimit(transform: TransformComponent, laneComp: LaneComponent): void {
     const style = new TextStyle({
       fontFamily: 'Arial',
       fontSize: 12,
       fill: 0xffffff,
       align: 'center'
     });
-    
+
     const text = new Text(`${Math.round(laneComp.speedLimit * 10)}`, style);
-    
-    text.x = transform.x;
-    text.y = transform.y + 20;
+    text.x = transform.position.x;
+    text.y = transform.position.y + 20;
     text.anchor.set(0.5);
-    
+
     this.container.addChild(text);
   }
 }

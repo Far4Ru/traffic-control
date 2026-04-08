@@ -1,144 +1,137 @@
-import { World } from '../ecs/World';
-import { System } from '../ecs/System';
+import { World, System, Entity } from '../core/ecs';
+import { TransformComponent, VehicleComponent, LaneComponent, CollisionComponent, TrafficLightComponent } from '../components';
+import { COLLISION, PHASE_MAP, SCENE } from '../config/constants';
 
 export class VehicleMovementSystem extends System {
-  update(world: World, deltaTime: number) {
+  constructor() {
+    super(50);
+  }
+
+  update(world: World, deltaTime: number): void {
     const vehicles = world.getEntitiesWithComponent('vehicle');
-    
+
     for (const vehicle of vehicles) {
-      const transform = vehicle.getComponent('transform');
-      const vehicleComp = vehicle.getComponent('vehicle');
-      const collision = vehicle.getComponent('collision');
-      
+      const transform = vehicle.getComponent<TransformComponent>('transform');
+      const vehicleComp = vehicle.getComponent<VehicleComponent>('vehicle');
+      const collision = vehicle.getComponent<CollisionComponent>('collision');
+
       if (!transform || !vehicleComp) continue;
       if (collision?.stopped) continue;
-      
-      const lane = world.getEntity(vehicleComp.lane);
-      const laneComp = lane?.getComponent('lane');
+
+      const lane = world.getEntity(vehicleComp.laneId);
+      const laneComp = lane?.getComponent<LaneComponent>('lane');
       if (!laneComp) continue;
-      
-      // Проверка светофора
+
       const canGo = this.canProceed(vehicle, world, laneComp);
-      
-      // Проверка машин впереди
       const hasVehicleAhead = this.checkVehicleAhead(vehicle, world);
-      
+
       if (canGo && !hasVehicleAhead) {
-        if (vehicleComp.speed < vehicleComp.targetSpeed) {
-          vehicleComp.speed += vehicleComp.acceleration * deltaTime;
-        }
+        vehicleComp.accelerate(deltaTime);
       } else {
-        vehicleComp.speed = Math.max(0, vehicleComp.speed - vehicleComp.braking * deltaTime);
+        vehicleComp.brake(deltaTime);
       }
-      
-      // Движение
-      const forwardX = Math.cos(transform.rotation);
-      const forwardY = Math.sin(transform.rotation);
-      transform.x += forwardX * vehicleComp.speed * deltaTime;
-      transform.y += forwardY * vehicleComp.speed * deltaTime;
-      
-      // Поворот на перекрестке
-      this.handleIntersectionTurn(vehicle, deltaTime);
-      
-      // Удаление если уехал далеко
-      if (transform.x < -200 || transform.x > 1480 || transform.y < -200 || transform.y > 1224) {
+
+      this.moveVehicle(transform, vehicleComp, deltaTime);
+      this.handleIntersectionTurn(transform, vehicleComp, deltaTime);
+
+      if (this.isOffScreen(transform)) {
         this.removeVehicle(vehicle, world);
       }
     }
   }
-  
-  private canProceed(vehicle: any, world: World, laneComp: any): boolean {
-    const transform = vehicle.getComponent('transform');
+
+  private canProceed(vehicle: Entity, world: World, laneComp: LaneComponent): boolean {
+    const transform = vehicle.getComponent<TransformComponent>('transform');
     if (!transform) return false;
-    
-    // Проверяем расстояние до перекрестка
-    const distToCenter = Math.sqrt(Math.pow(transform.x - 640, 2) + Math.pow(transform.y - 512, 2));
-    
-    // Если далеко от перекрестка - можно ехать
+
+    const distToCenter = this.getDistanceToCenter(transform);
     if (distToCenter > 150) return true;
-    
-    // Найти светофор для этого направления
+
     const lights = world.getEntitiesWithComponent('trafficLight');
-    const phaseMap: Record<string, number> = {
-      'north': 0, 'south': 1, 'east': 2, 'west': 3
-    };
-    const lanePhase = phaseMap[laneComp.direction];
-    
+    const lanePhase = PHASE_MAP[laneComp.direction];
+
     for (const light of lights) {
-      const lightComp = light.getComponent('trafficLight');
+      const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
       if (!lightComp) continue;
-      
-      if (lightComp.phase === lanePhase && lightComp.enabled) {
-        return lightComp.state === 'green';
+
+      if (lightComp.phase === lanePhase) {
+        return lightComp.isGreen();
       }
     }
-    
+
     return true;
   }
-  
-  private checkVehicleAhead(vehicle: any, world: World): boolean {
-    const transform = vehicle.getComponent('transform');
-    const vehicleComp = vehicle.getComponent('vehicle');
+
+  private checkVehicleAhead(vehicle: Entity, world: World): boolean {
+    const transform = vehicle.getComponent<TransformComponent>('transform');
+    const vehicleComp = vehicle.getComponent<VehicleComponent>('vehicle');
     if (!transform || !vehicleComp) return false;
-    
-    const forwardX = Math.cos(transform.rotation);
-    const forwardY = Math.sin(transform.rotation);
-    
+
+    const forward = transform.getForward();
+
     for (const other of world.getEntitiesWithComponent('vehicle')) {
       if (other.id === vehicle.id) continue;
-      
-      const otherTransform = other.getComponent('transform');
+
+      const otherTransform = other.getComponent<TransformComponent>('transform');
       if (!otherTransform) continue;
-      
-      const dx = otherTransform.x - transform.x;
-      const dy = otherTransform.y - transform.y;
-      
-      const dot = dx * forwardX + dy * forwardY;
-      if (dot > 0 && dot < 65) {
-        const perpDist = Math.abs(dx * forwardY - dy * forwardX);
+
+      const dx = otherTransform.position.x - transform.position.x;
+      const dy = otherTransform.position.y - transform.position.y;
+
+      const dot = dx * forward.x + dy * forward.y;
+      if (dot > 0 && dot < COLLISION.SAFE_DISTANCE) {
+        const perpDist = Math.abs(dx * forward.y - dy * forward.x);
         if (perpDist < 30) {
           return true;
         }
       }
     }
-    
+
     return false;
   }
-  
-  private handleIntersectionTurn(vehicle: any, deltaTime: number) {
-    const transform = vehicle.getComponent('transform');
-    const vehicleComp = vehicle.getComponent('vehicle');
-    if (!transform || !vehicleComp) return;
-    
-    const centerDist = Math.sqrt(Math.pow(transform.x - 640, 2) + Math.pow(transform.y - 512, 2));
-    
-    if (centerDist > 50 && centerDist < 130) {
-      const action = vehicleComp.intendedAction;
-      const turnSpeed = 0.025 * deltaTime;
-      
-      if (action === 'left') {
+
+  private moveVehicle(transform: TransformComponent, vehicle: VehicleComponent, deltaTime: number): void {
+    const forward = transform.getForward();
+    transform.position.x += forward.x * vehicle.speed * deltaTime;
+    transform.position.y += forward.y * vehicle.speed * deltaTime;
+  }
+
+  private handleIntersectionTurn(transform: TransformComponent, vehicle: VehicleComponent, deltaTime: number): void {
+    const distToCenter = this.getDistanceToCenter(transform);
+
+    if (distToCenter > COLLISION.TURN_START_DISTANCE && distToCenter < COLLISION.TURN_END_DISTANCE) {
+      const turnSpeed = COLLISION.TURN_SPEED * deltaTime;
+
+      if (vehicle.intendedAction === 'left') {
         transform.rotation -= turnSpeed;
-      } else if (action === 'right') {
+      } else if (vehicle.intendedAction === 'right') {
         transform.rotation += turnSpeed;
       }
-      
-      // Сбрасываем действие после поворота
-      if (centerDist > 120) {
-        vehicleComp.intendedAction = 'straight';
+
+      if (distToCenter > COLLISION.TURN_END_DISTANCE - 10) {
+        vehicle.intendedAction = 'straight';
       }
     }
   }
-  
-  private removeVehicle(vehicle: any, world: World) {
-    const vehicleComp = vehicle.getComponent('vehicle');
+
+  private getDistanceToCenter(transform: TransformComponent): number {
+    return Math.sqrt(
+      Math.pow(transform.position.x - SCENE.CENTER_X, 2) +
+      Math.pow(transform.position.y - SCENE.CENTER_Y, 2)
+    );
+  }
+
+  private isOffScreen(transform: TransformComponent): boolean {
+    return transform.position.x < -200 || transform.position.x > SCENE.WIDTH + 200 ||
+      transform.position.y < -200 || transform.position.y > SCENE.HEIGHT + 200;
+  }
+
+  private removeVehicle(vehicle: Entity, world: World): void {
+    const vehicleComp = vehicle.getComponent<VehicleComponent>('vehicle');
     if (vehicleComp) {
-      const lane = world.getEntity(vehicleComp.lane);
-      if (lane) {
-        const laneComp = lane.getComponent('lane');
-        if (laneComp) {
-          laneComp.vehicles = laneComp.vehicles.filter((id: string) => id !== vehicle.id);
-        }
-      }
+      const lane = world.getEntity(vehicleComp.laneId);
+      const laneComp = lane?.getComponent<LaneComponent>('lane');
+      laneComp?.removeVehicle(vehicle.id);
     }
     world.removeEntity(vehicle.id);
   }

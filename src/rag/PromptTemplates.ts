@@ -1,5 +1,14 @@
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  action: string;
+  parameters: Record<string, any>;
+}
+
 export class PromptTemplates {
-  private templates = [
+  private templates: Template[] = [
     {
       id: 'normal_flow',
       name: 'Обычное движение',
@@ -79,16 +88,16 @@ export class PromptTemplates {
       }
     }
   ];
-  
-  getAllBehaviors() {
+
+  getAllBehaviors(): Template[] {
     return this.templates;
   }
-  
-  getTemplateById(id: string) {
+
+  getTemplateById(id: string): Template | undefined {
     return this.templates.find(t => t.id === id);
   }
-  
-  getTemplatePrompts(): Array<{ id: string, name: string, prompt: string }> {
+
+  getTemplatePrompts(): Array<{ id: string; name: string; prompt: string }> {
     return this.templates.map(t => ({
       id: t.id,
       name: t.name,

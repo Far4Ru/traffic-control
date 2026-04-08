@@ -1,80 +1,62 @@
-import { World } from '../ecs/World';
-import { System } from '../ecs/System';
+import { World, System, Entity } from '../core/ecs';
+import { TransformComponent, VehicleComponent, CollisionComponent } from '../components';
 
 export class CollisionSystem extends System {
-  private collisionMap: Map<string, string[]> = new Map();
-  
-  update(world: World, _deltaTime: number) {
+  private collisionPairs: Map<string, boolean> = new Map();
+
+  constructor() {
+    super(60);
+  }
+
+  update(world: World, _deltaTime: number): void {
     const vehicles = world.getEntitiesWithComponent('vehicle');
-    
-    // Reset collision states
+
     for (const vehicle of vehicles) {
-      const collision = vehicle.getComponent('collision');
-      if (collision) {
-        collision.colliding = false;
-      }
+      const collision = vehicle.getComponent<CollisionComponent>('collision');
+      if (collision) collision.colliding = false;
     }
-    
-    // Check collisions
+
     for (let i = 0; i < vehicles.length; i++) {
       for (let j = i + 1; j < vehicles.length; j++) {
-        const v1 = vehicles[i];
-        const v2 = vehicles[j];
-        
-        if (this.checkCollision(v1, v2)) {
-          this.handleCollision(v1, v2);
-        }
+        this.checkAndHandleCollision(vehicles[i], vehicles[j]);
       }
     }
   }
-  
-  private checkCollision(v1: any, v2: any): boolean {
-    const t1 = v1.getComponent('transform');
-    const t2 = v2.getComponent('transform');
-    const c1 = v1.getComponent('collision');
-    const c2 = v2.getComponent('collision');
-    
-    if (!t1 || !t2 || !c1 || !c2) return false;
-    
-    const distance = Math.sqrt(Math.pow(t2.x - t1.x, 2) + Math.pow(t2.y - t1.y, 2));
-    const minDistance = c1.radius + c2.radius;
-    
-    return distance < minDistance;
-  }
-  
-  private handleCollision(v1: any, v2: any) {
-    const c1 = v1.getComponent('collision');
-    const c2 = v2.getComponent('collision');
-    const veh1 = v1.getComponent('vehicle');
-    const veh2 = v2.getComponent('vehicle');
-    
-    if (!c1 || !c2 || !veh1 || !veh2) return;
-    
-    c1.colliding = true;
-    c2.colliding = true;
-    
-    // Stop both vehicles
-    c1.stopped = true;
-    c2.stopped = true;
-    veh1.speed = 0;
-    veh2.speed = 0;
-    
-    // Store collision pair
-    const pairId = [v1.id, v2.id].sort().join('-');
-    if (!this.collisionMap.has(pairId)) {
-      this.collisionMap.set(pairId, [v1.id, v2.id]);
+
+  private checkAndHandleCollision(v1: Entity, v2: Entity): void {
+    const t1 = v1.getComponent<TransformComponent>('transform');
+    const t2 = v2.getComponent<TransformComponent>('transform');
+    const c1 = v1.getComponent<CollisionComponent>('collision');
+    const c2 = v2.getComponent<CollisionComponent>('collision');
+    const veh1 = v1.getComponent<VehicleComponent>('vehicle');
+    const veh2 = v2.getComponent<VehicleComponent>('vehicle');
+
+    if (!t1 || !t2 || !c1 || !c2 || !veh1 || !veh2) return;
+
+    const distance = Math.sqrt(
+      Math.pow(t2.position.x - t1.position.x, 2) +
+      Math.pow(t2.position.y - t1.position.y, 2)
+    );
+
+    if (distance < c1.radius + c2.radius) {
+      c1.setCollision(true, v2.id);
+      c2.setCollision(true, v1.id);
+      veh1.stop();
+      veh2.stop();
+
+      const pairId = [v1.id, v2.id].sort().join('-');
+      this.collisionPairs.set(pairId, true);
     }
   }
-  
-  public resolveCollisions(world: World) {
+
+  resolveCollisions(world: World): void {
     const vehicles = world.getEntitiesWithComponent('vehicle');
+
     for (const vehicle of vehicles) {
-      const collision = vehicle.getComponent('collision');
-      if (collision) {
-        collision.stopped = false;
-        collision.colliding = false;
-      }
+      const collision = vehicle.getComponent<CollisionComponent>('collision');
+      if (collision) collision.resolve();
     }
-    this.collisionMap.clear();
+
+    this.collisionPairs.clear();
   }
 }
