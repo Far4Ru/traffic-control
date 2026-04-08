@@ -1,0 +1,38 @@
+{
+  "scene": {
+    "width": 1280,
+    "height": 1024,
+    "backgroundColor": 1711276
+  },
+  "intersection": {
+    "centerX": 640,
+    "centerY": 512,
+    "lanesPerDirection": 2,
+    "laneWidth": 32,
+    "roadWidth": 128
+  },
+  "trafficLights": {
+    "cycleTime": 20000,
+    "greenDuration": 5000,
+    "yellowDuration": 2000,
+    "redDuration": 13000
+  },
+  "vehicles": {
+    "defaultSpeed": 2,
+    "minSpeed": 0.5,
+    "maxSpeed": 5,
+    "spawnRate": 2000,
+    "maxVehicles": 20
+  },
+  "collision": {
+    "detectionRadius": 20,
+    "safeDistance": 50,
+    "resolveTimeout": 3000
+  },
+  "rag": {
+    "embeddingDimension": 384,
+    "similarityThreshold": 0.7,
+    "cacheSize": 50,
+    "interpolationSpeed": 0.1
+  }
+}
