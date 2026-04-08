@@ -1,5 +1,5 @@
 import { World, System, Entity } from '../core/ecs';
-import { Application, Sprite, Graphics, Text, Container, Texture, TextStyle } from 'pixi.js';
+import { Application, Sprite, Graphics, Text, Container, Texture } from 'pixi.js';
 import { TransformComponent, SpriteComponent, TrafficLightComponent, LaneComponent } from '../components';
 
 export class RenderSystem extends System {
@@ -13,48 +13,29 @@ export class RenderSystem extends System {
 
   onAttach(): void {
     this.app.stage.addChild(this.container);
-  }
-
-  onDetach(): void {
-    this.app.stage.removeChild(this.container);
-    this.container.destroy({ children: true });
+    console.log('RenderSystem attached to stage');
   }
 
   update(world: World, _deltaTime: number): void {
     this.container.removeChildren();
 
-    this.renderRoads(world);
-    this.renderLanes(world);
-    this.renderTrafficLights(world);
-    this.renderVehicles(world);
-  }
+    const allSprites = world.getEntitiesWithComponent('sprite');
+    console.log('Sprites to render:', allSprites.length);
 
-  private renderRoads(world: World): void {
-    const roads = world.getEntitiesWithComponent('sprite')
-      .filter(e => e.getComponent<SpriteComponent>('sprite')?.texture.includes('road'));
+    // Рендерим все спрайты
+    allSprites.forEach(entity => {
+      const spriteComp = entity.getComponent<SpriteComponent>('sprite');
+      const transform = entity.getComponent<TransformComponent>('transform');
 
-    roads.forEach(road => this.renderSprite(road));
-  }
+      if (spriteComp && transform) {
+        console.log('Rendering sprite:', spriteComp.texture, 'at', transform.position.x, transform.position.y);
+      }
 
-  private renderLanes(world: World): void {
-    const lanes = world.getEntitiesWithComponent('lane');
-    const arrowSprites = world.getEntitiesWithComponent('sprite')
-      .filter(e => e.getComponent<SpriteComponent>('sprite')?.texture.includes('arrow'));
-
-    lanes.forEach(lane => {
-      const laneComp = lane.getComponent<LaneComponent>('lane');
-      const transform = lane.getComponent<TransformComponent>('transform');
-      if (!laneComp || !transform) return;
-
-      this.renderSpeedLimit(transform, laneComp);
+      this.renderSprite(entity);
     });
 
-    arrowSprites.forEach(arrow => this.renderSprite(arrow));
-  }
-
-  private renderTrafficLights(world: World): void {
+    // Рендерим светофоры без спрайтов
     const lights = world.getEntitiesWithComponent('trafficLight');
-
     lights.forEach(light => {
       const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
       const transform = light.getComponent<TransformComponent>('transform');
@@ -62,29 +43,37 @@ export class RenderSystem extends System {
 
       if (!lightComp || !transform) return;
 
-      if (sprite) {
-        sprite.texture = `traffic-light-${lightComp.state}`;
-        this.renderSprite(light);
-      } else {
+      if (!sprite) {
         this.renderTrafficLightGraphics(transform, lightComp);
       }
     });
-  }
 
-  private renderVehicles(world: World): void {
-    const vehicles = world.getEntitiesWithComponent('vehicle');
-    vehicles.forEach(vehicle => this.renderSprite(vehicle));
+    // Рендерим ограничения скорости
+    const lanes = world.getEntitiesWithComponent('lane');
+    lanes.forEach(lane => {
+      const laneComp = lane.getComponent<LaneComponent>('lane');
+      const transform = lane.getComponent<TransformComponent>('transform');
+      if (laneComp && transform) {
+        this.renderSpeedLimit(transform, laneComp);
+      }
+    });
+
+    console.log('Total children rendered:', this.container.children.length);
   }
 
   private renderSprite(entity: Entity): void {
     const transform = entity.getComponent<TransformComponent>('transform');
     const spriteComp = entity.getComponent<SpriteComponent>('sprite');
 
-    if (!transform || !spriteComp || !spriteComp.visible) return;
+    if (!transform || !spriteComp || !spriteComp.visible) {
+      console.log('Skipping sprite - missing transform or not visible');
+      return;
+    }
 
     let sprite = this.spriteCache.get(entity.id);
 
     if (!sprite) {
+      console.log('Creating new sprite for texture:', spriteComp.texture);
       const texture = Texture.from(spriteComp.texture);
       sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
@@ -130,14 +119,13 @@ export class RenderSystem extends System {
   }
 
   private renderSpeedLimit(transform: TransformComponent, laneComp: LaneComponent): void {
-    const style = new TextStyle({
+    const text = new Text(`${Math.round(laneComp.speedLimit * 10)}`, {
       fontFamily: 'Arial',
       fontSize: 12,
       fill: 0xffffff,
       align: 'center'
     });
 
-    const text = new Text(`${Math.round(laneComp.speedLimit * 10)}`, style);
     text.x = transform.position.x;
     text.y = transform.position.y + 20;
     text.anchor.set(0.5);

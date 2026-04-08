@@ -23,6 +23,8 @@ export class LaneFactory {
             this.createArrow(config);
         }
 
+        console.log('Lane created:', config.direction, config.isEntry ? 'entry' : 'exit');
+
         return lane;
     }
 
@@ -43,6 +45,11 @@ export class LaneFactory {
             .addComponent(new TransformComponent(arrowX, arrowY, 0))
             .addComponent(new SpriteComponent(`arrow-${config.arrowType}`, 28, 28));
 
-        arrow.getComponent<TransformComponent>('transform')!.scale = { x: 1.2, y: 1.2 };
+        const transform = arrow.getComponent<TransformComponent>('transform');
+        if (transform) {
+            transform.scale = { x: 1.2, y: 1.2 };
+        }
+
+        console.log('Arrow created:', config.arrowType, 'at', arrowX, arrowY);
     }
 }

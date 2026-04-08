@@ -1,4 +1,4 @@
-import { Application } from 'pixi.js';
+import { Application, Graphics } from 'pixi.js';
 import { World } from './core/ecs';
 import {
   RenderSystem,
@@ -38,7 +38,17 @@ class TrafficIntersection {
     this.initialize();
   }
 
-  private async initialize(): Promise<void> {
+  private initialize(): void {
+    // Тестовый прямоугольник чтобы убедиться что рендер работает
+    const testGraphics = new Graphics();
+    testGraphics.beginFill(0xff0000);
+    testGraphics.drawRect(0, 0, 100, 100);
+    testGraphics.endFill();
+    testGraphics.x = 100;
+    testGraphics.y = 100;
+    this.app.stage.addChild(testGraphics);
+    console.log('Test rectangle added to stage');
+
     this.generateTextures();
     this.setupECS();
     this.buildIntersection();
@@ -47,7 +57,7 @@ class TrafficIntersection {
   }
 
   private generateTextures(): void {
-    const textureGenerator = new TextureGenerator(this.app.renderer);
+    const textureGenerator = new TextureGenerator(this.app.renderer as any);
     textureGenerator.generateAll();
   }
 
@@ -67,12 +77,14 @@ class TrafficIntersection {
   private buildIntersection(): void {
     const intersection = new IntersectionPrefab(this.world);
     intersection.build();
+
+    console.log('Entities in world:', this.world.getEntitiesWithComponent('transform').length);
+    console.log('Sprites in world:', this.world.getEntitiesWithComponent('sprite').length);
   }
 
   private setupUI(): void {
-    const ragSystem = this.world['systems'].find(
-      s => s instanceof RAGControlSystem
-    ) as RAGControlSystem;
+    const systems = this.world.getSystems();
+    const ragSystem = systems.find(s => s instanceof RAGControlSystem) as RAGControlSystem;
 
     this.controlPanel = new ControlPanel(
       this.ragEngine,
@@ -83,10 +95,16 @@ class TrafficIntersection {
   }
 
   private start(): void {
-    this.app.ticker.add((deltaTime: number) => {
+    this.app.ticker.add((deltaTime) => {
       this.world.update(Math.min(deltaTime, 3));
       this.controlPanel.update();
     });
+
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        this.spawnSystem.spawnVehicleManually(this.world);
+      }, i * 500);
+    }
   }
 }
 

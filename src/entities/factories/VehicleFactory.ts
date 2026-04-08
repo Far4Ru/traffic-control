@@ -2,7 +2,6 @@ import { World, Entity } from '../../core/ecs';
 import { TransformComponent, VehicleComponent, SpriteComponent, CollisionComponent } from '../../components';
 import { CarColor, VehicleAction } from '../../core/types';
 import { LaneComponent } from '../../components/LaneComponent';
-import { TRAFFIC } from '../../config/constants';
 
 export class VehicleFactory {
     constructor(private world: World) { }

@@ -1,9 +1,11 @@
 import { Component } from './Component';
+import { World } from './World';
 
 export class Entity {
     public readonly id: string;
     private components: Map<string, Component> = new Map();
     private tags: Set<string> = new Set();
+    private world: World | null = null;
 
     constructor(id?: string) {
         this.id = id ?? Entity.generateId();
@@ -13,9 +15,18 @@ export class Entity {
         return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    addComponent<T extends Component>(component: T): this {
+    setWorld(world: World): void {
+        this.world = world;
+    }
+
+    addComponent<T extends Component>(component: Component): this {
         this.components.set(component.type, component);
         component.entity = this;
+
+        if (this.world) {
+            this.world.onComponentAdded(this, component.type);
+        }
+
         return this;
     }
 
@@ -32,6 +43,10 @@ export class Entity {
         if (component) {
             component.entity = undefined;
             this.components.delete(type);
+
+            if (this.world) {
+                this.world.onComponentRemoved(this, type);
+            }
         }
         return this;
     }
@@ -57,5 +72,6 @@ export class Entity {
     destroy(): void {
         this.components.clear();
         this.tags.clear();
+        this.world = null;
     }
 }

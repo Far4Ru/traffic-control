@@ -12,6 +12,8 @@ export class RoadFactory {
             .addComponent(new TransformComponent(SCENE.CENTER_X, SCENE.CENTER_Y, 0))
             .addComponent(new SpriteComponent(texture, SCENE.WIDTH, SCENE.HEIGHT));
 
+        console.log('Road created with texture:', texture);
+
         return road;
     }
 }

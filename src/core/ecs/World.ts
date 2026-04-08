@@ -1,14 +1,13 @@
 import { Entity } from './Entity';
 import { System } from './System';
-import { Component } from './Component';
 
 export class World {
     private entities: Map<string, Entity> = new Map();
     private systems: System[] = [];
     private entitiesByComponent: Map<string, Set<Entity>> = new Map();
-
     createEntity(id?: string): Entity {
         const entity = new Entity(id);
+        entity.setWorld(this);
         this.entities.set(entity.id, entity);
         return entity;
     }
@@ -56,6 +55,19 @@ export class World {
                 system.update(this, deltaTime);
             }
         }
+    }
+
+    // Вызывать этот метод когда у сущности добавляется компонент
+    onComponentAdded(entity: Entity, componentType: string): void {
+        if (!this.entitiesByComponent.has(componentType)) {
+            this.entitiesByComponent.set(componentType, new Set());
+        }
+        this.entitiesByComponent.get(componentType)!.add(entity);
+    }
+
+    // Вызывать когда у сущности удаляется компонент
+    onComponentRemoved(entity: Entity, componentType: string): void {
+        this.entitiesByComponent.get(componentType)?.delete(entity);
     }
 
     private indexEntity(entity: Entity): void {
