@@ -3,7 +3,7 @@ import { World } from './World';
 
 export class Entity {
     public readonly id: string;
-    private components: Map<string, Component> = new Map();
+    private components: Map<string, any> = new Map();
     private tags: Set<string> = new Set();
     private world: World | null = null;
 
@@ -19,18 +19,32 @@ export class Entity {
         this.world = world;
     }
 
-    addComponent<T extends Component>(component: Component): this {
-        this.components.set(component.type, component);
-        component.entity = this;
+    addComponent(typeOrComponent: string | Component, data?: any): this {
+        let component: any;
+        let type: string;
+
+        if (typeof typeOrComponent === 'string') {
+            type = typeOrComponent;
+            component = { type, ...data };
+        } else {
+            component = typeOrComponent;
+            type = component.type;
+        }
+
+        this.components.set(type, component);
+
+        if (component.entity !== undefined) {
+            component.entity = this;
+        }
 
         if (this.world) {
-            this.world.onComponentAdded(this, component.type);
+            this.world.onComponentAdded(this, type);
         }
 
         return this;
     }
 
-    getComponent<T extends Component>(type: string): T | undefined {
+    getComponent<T>(type: string): T | undefined {
         return this.components.get(type) as T;
     }
 
@@ -41,7 +55,9 @@ export class Entity {
     removeComponent(type: string): this {
         const component = this.components.get(type);
         if (component) {
-            component.entity = undefined;
+            if (component.entity !== undefined) {
+                component.entity = undefined;
+            }
             this.components.delete(type);
 
             if (this.world) {
@@ -51,7 +67,7 @@ export class Entity {
         return this;
     }
 
-    getAllComponents(): Map<string, Component> {
+    getAllComponents(): Map<string, any> {
         return this.components;
     }
 

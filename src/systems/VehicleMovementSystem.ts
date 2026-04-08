@@ -67,7 +67,8 @@ export class VehicleMovementSystem extends System {
     const vehicleComp = vehicle.getComponent<VehicleComponent>('vehicle');
     if (!transform || !vehicleComp) return false;
 
-    const forward = transform.getForward();
+    // Направление движения машины - это getRight() из-за поворота спрайта
+    const forward = transform.getRight();
 
     for (const other of world.getEntitiesWithComponent('vehicle')) {
       if (other.id === vehicle.id) continue;
@@ -91,7 +92,8 @@ export class VehicleMovementSystem extends System {
   }
 
   private moveVehicle(transform: TransformComponent, vehicle: VehicleComponent, deltaTime: number): void {
-    const forward = transform.getForward();
+    // Машина движется в направлении getRight()
+    const forward = transform.getRight();
     transform.position.x += forward.x * vehicle.speed * deltaTime;
     transform.position.y += forward.y * vehicle.speed * deltaTime;
   }
