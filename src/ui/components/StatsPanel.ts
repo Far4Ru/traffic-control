@@ -7,7 +7,7 @@ export class StatsPanel {
   render(): string {
     return `
       <div class="control-section">
-        <h3>📊 Статистика</h3>
+        <h3>Статистика</h3>
         <div class="stat-grid" id="stats-grid"></div>
       </div>
     `;

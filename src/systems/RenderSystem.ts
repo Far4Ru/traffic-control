@@ -1,6 +1,6 @@
 import { World, System, Entity } from '../core/ecs';
 import { Application, Sprite, Graphics, Text, Container, Texture } from 'pixi.js';
-import { TransformComponent, SpriteComponent, TrafficLightComponent, LaneComponent } from '../components';
+import { TransformComponent, SpriteComponent, TrafficLightComponent } from '../components';
 
 interface SpeedSignComponent {
   type: string;
@@ -25,7 +25,7 @@ export class RenderSystem extends System {
 
     const allSprites = world.getEntitiesWithComponent('sprite');
 
-    // Рендерим дорогу
+    // Рендерим дорогу первой
     allSprites.forEach(entity => {
       const spriteComp = entity.getComponent<SpriteComponent>('sprite');
       if (spriteComp?.texture.includes('road')) {
@@ -66,7 +66,7 @@ export class RenderSystem extends System {
       }
     });
 
-    // Рендерим машины
+    // Рендерим машины последними (поверх всего)
     const vehicles = world.getEntitiesWithComponent('vehicle');
     vehicles.forEach(vehicle => this.renderSprite(vehicle));
   }
@@ -84,6 +84,8 @@ export class RenderSystem extends System {
       sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
       this.spriteCache.set(entity.id, sprite);
+    } else if (sprite.texture !== Texture.from(spriteComp.texture)) {
+      sprite.texture = Texture.from(spriteComp.texture);
     }
 
     sprite.x = transform.position.x;
@@ -98,10 +100,10 @@ export class RenderSystem extends System {
   private renderSpeedSign(transform: TransformComponent, speed: number): void {
     const bg = new Graphics();
     bg.beginFill(0xffffff);
-    bg.drawCircle(0, 0, 16);
+    bg.drawCircle(0, 0, 14);
     bg.endFill();
     bg.beginFill(0xff0000);
-    bg.drawCircle(0, 0, 13);
+    bg.drawCircle(0, 0, 11);
     bg.endFill();
     bg.x = transform.position.x;
     bg.y = transform.position.y;
@@ -109,7 +111,7 @@ export class RenderSystem extends System {
 
     const text = new Text(`${Math.round(speed * 10)}`, {
       fontFamily: 'Arial',
-      fontSize: 12,
+      fontSize: 10,
       fill: 0xffffff,
       align: 'center',
       fontWeight: 'bold'

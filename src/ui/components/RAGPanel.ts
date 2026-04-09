@@ -13,14 +13,14 @@ export class RAGPanel {
     render(): string {
         return `
       <div class="control-section">
-        <h3>🤖 RAG Управление</h3>
+        <h3>RAG Управление</h3>
         <textarea id="prompt-input" class="prompt-input" placeholder="Введите промпт..."></textarea>
         <button id="submit-prompt" class="btn btn-primary" style="margin-top: 10px; width: 100%;">Отправить</button>
         <div id="rag-status" class="rag-status">Готов к обработке</div>
       </div>
       
       <div class="control-section">
-        <h3>📋 Шаблоны</h3>
+        <h3>Шаблоны</h3>
         <div class="template-list" id="template-list"></div>
       </div>
     `;

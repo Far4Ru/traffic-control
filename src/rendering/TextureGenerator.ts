@@ -19,20 +19,23 @@ export class TextureGenerator {
         for (const [name, color] of Object.entries(colors)) {
             const g = new Graphics();
 
+            // Кузов
             g.beginFill(color);
-            g.drawRoundedRect(-16, -24, 32, 48, 8);
+            g.drawRoundedRect(-14, -21, 28, 42, 6);
             g.endFill();
 
+            // Окна
             g.beginFill(0x222222);
-            g.drawRect(-12, -16, 6, 12);
-            g.drawRect(6, -16, 6, 12);
-            g.drawRect(-12, 4, 6, 12);
-            g.drawRect(6, 4, 6, 12);
+            g.drawRect(-10, -14, 5, 10);
+            g.drawRect(5, -14, 5, 10);
+            g.drawRect(-10, 4, 5, 10);
+            g.drawRect(5, 4, 5, 10);
             g.endFill();
 
+            // Фары
             g.beginFill(0xffdd00);
-            g.drawRect(-14, 22, 4, 4);
-            g.drawRect(10, 22, 4, 4);
+            g.drawRect(-12, 19, 3, 3);
+            g.drawRect(9, 19, 3, 3);
             g.endFill();
 
             const texture = this.renderer.generateTexture(g);
@@ -54,9 +57,9 @@ export class TextureGenerator {
 
         // Асфальт
         g.beginFill(0x555555);
-        // Горизонтальная дорога
+        // Горизонтальная дорога (запад-восток)
         g.drawRect(0, CY - LW * 2, SCENE.WIDTH, LW * 4);
-        // Вертикальная дорога
+        // Вертикальная дорога (север-юг)
         g.drawRect(CX - LW * 2, 0, LW * 4, SCENE.HEIGHT);
         g.endFill();
 
@@ -81,19 +84,19 @@ export class TextureGenerator {
         g.lineStyle(2, 0xffffff, 0.8);
 
         // Горизонтальные разделители
-        for (let i = 0; i < SCENE.WIDTH; i += 50) {
+        for (let i = 0; i < SCENE.WIDTH; i += 40) {
             g.moveTo(i, CY - LW);
-            g.lineTo(i + 25, CY - LW);
+            g.lineTo(i + 20, CY - LW);
             g.moveTo(i, CY + LW);
-            g.lineTo(i + 25, CY + LW);
+            g.lineTo(i + 20, CY + LW);
         }
 
         // Вертикальные разделители
-        for (let i = 0; i < SCENE.HEIGHT; i += 50) {
+        for (let i = 0; i < SCENE.HEIGHT; i += 40) {
             g.moveTo(CX - LW, i);
-            g.lineTo(CX - LW, i + 25);
+            g.lineTo(CX - LW, i + 20);
             g.moveTo(CX + LW, i);
-            g.lineTo(CX + LW, i + 25);
+            g.lineTo(CX + LW, i + 20);
         }
 
         // Краевые линии (сплошные)
@@ -109,17 +112,17 @@ export class TextureGenerator {
 
         // Стоп-линии
         g.lineStyle(4, 0xffffff, 1);
-        const stopOffset = LW * 2.5;
-        // Север
+        const stopOffset = LW * 2.2;
+        // Север (перед перекрестком снизу)
         g.moveTo(CX - LW * 2, CY - stopOffset);
         g.lineTo(CX + LW * 2, CY - stopOffset);
-        // Юг
+        // Юг (перед перекрестком сверху)
         g.moveTo(CX - LW * 2, CY + stopOffset);
         g.lineTo(CX + LW * 2, CY + stopOffset);
-        // Запад
+        // Запад (перед перекрестком справа)
         g.moveTo(CX - stopOffset, CY - LW * 2);
         g.lineTo(CX - stopOffset, CY + LW * 2);
-        // Восток
+        // Восток (перед перекрестком слева)
         g.moveTo(CX + stopOffset, CY - LW * 2);
         g.lineTo(CX + stopOffset, CY + LW * 2);
 
@@ -129,30 +132,28 @@ export class TextureGenerator {
     }
 
     private generateArrowTextures(): void {
-        const arrows: Record<string, number[][][]> = {
-            'straight': [[[-8, 12], [8, 12], [0, -10]]],
-            'left': [[[12, -8], [12, 8], [-10, 0]]],
-            'right': [[[-12, -8], [-12, 8], [10, 0]]],
-            'straight-left': [[[-8, 12], [0, 12], [0, -10]], [[12, -8], [12, 0], [-10, 0]]],
-            'straight-right': [[[0, 12], [8, 12], [0, -10]], [[-12, -8], [-12, 0], [10, 0]]],
-            'all': [[[-8, 12], [8, 12], [0, -10]], [[12, -8], [12, 8], [-10, 0]], [[-12, -8], [-12, 8], [10, 0]]],
-        };
+        // Создаем только стрелку прямо (направление вправо, потом повернем через rotation)
+        const g = new Graphics();
 
-        for (const [name, polys] of Object.entries(arrows)) {
-            const g = new Graphics();
+        g.beginFill(0x1a1a2e);
+        g.drawCircle(0, 0, 14);
+        g.endFill();
 
-            g.beginFill(0x1a1a2e);
-            g.drawCircle(0, 0, 18);
-            g.endFill();
+        g.beginFill(0x00d2ff);
+        // Стрелка, указывающая вправо (0 градусов)
+        g.moveTo(-10, -5);
+        g.lineTo(0, -5);
+        g.lineTo(0, -10);
+        g.lineTo(12, 0);
+        g.lineTo(0, 10);
+        g.lineTo(0, 5);
+        g.lineTo(-10, 5);
+        g.lineTo(-10, -5);
+        g.endFill();
 
-            g.beginFill(0x00d2ff);
-            polys.forEach(poly => g.drawPolygon(poly.flat()));
-            g.endFill();
-
-            const texture = this.renderer.generateTexture(g);
-            Texture.addToCache(texture, `arrow-${name}`);
-            g.destroy();
-        }
+        const texture = this.renderer.generateTexture(g);
+        Texture.addToCache(texture, `arrow-straight`);
+        g.destroy();
     }
 
     private generateTrafficLightTextures(): void {
@@ -162,12 +163,12 @@ export class TextureGenerator {
             const g = new Graphics();
 
             g.beginFill(0x222222);
-            g.drawRoundedRect(-35, -18, 70, 36, 6);
+            g.drawRoundedRect(-30, -15, 60, 30, 5);
             g.endFill();
 
             ['red', 'yellow', 'green'].forEach((s, i) => {
                 g.beginFill(s === state ? colors[s] : 0x333333);
-                g.drawCircle(-24 + i * 24, 0, 8);
+                g.drawCircle(-20 + i * 20, 0, 7);
                 g.endFill();
             });
 

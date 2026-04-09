@@ -1,6 +1,7 @@
 import { World, Entity } from '../../core/ecs';
 import { TransformComponent, LaneComponent, SpriteComponent } from '../../components';
 import { LaneConfig } from '../../config/intersection.config';
+import { SCENE, ROAD } from '../../config/constants';
 
 class SpeedSignComponent {
     type = 'speedSign';
@@ -41,47 +42,58 @@ export class LaneFactory {
         const offset = 100;
         let arrowX = config.x;
         let arrowY = config.y;
+        let arrowRotation = config.rotation;
 
-        // Стрелка указывает направление движения
         switch (config.direction) {
             case 'north':
                 arrowY = config.y + offset;
+                arrowRotation = Math.PI / 2;
                 break;
             case 'south':
                 arrowY = config.y - offset;
+                arrowRotation = -Math.PI / 2;
                 break;
             case 'east':
                 arrowX = config.x - offset;
+                arrowRotation = Math.PI;
                 break;
             case 'west':
                 arrowX = config.x + offset;
+                arrowRotation = 0;
                 break;
         }
 
-        // Стрелка повернута так же как и полоса (направление движения)
         arrow
-            .addComponent(new TransformComponent(arrowX, arrowY, config.rotation))
-            .addComponent(new SpriteComponent(`arrow-${config.arrowType}`, 32, 32));
+            .addComponent(new TransformComponent(arrowX, arrowY, arrowRotation))
+            .addComponent(new SpriteComponent(`arrow-${config.arrowType}`, 28, 28));
     }
 
     private createSpeedSign(config: LaneConfig): void {
         const sign = this.world.createEntity();
-        const offset = 140;
+        const offset = 130;
         let signX = config.x;
         let signY = config.y;
+
+        const LW = ROAD.LANE_WIDTH;
+        const CX = SCENE.CENTER_X;
+        const CY = SCENE.CENTER_Y;
 
         switch (config.direction) {
             case 'north':
                 signY = config.y + offset;
+                signX = config.x - 30;
                 break;
             case 'south':
                 signY = config.y - offset;
+                signX = config.x + 30;
                 break;
             case 'east':
                 signX = config.x - offset;
+                signY = config.y - 20;
                 break;
             case 'west':
                 signX = config.x + offset;
+                signY = config.y + 20;
                 break;
         }
 

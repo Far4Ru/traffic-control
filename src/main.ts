@@ -39,16 +39,6 @@ class TrafficIntersection {
   }
 
   private initialize(): void {
-    // Тестовый прямоугольник чтобы убедиться что рендер работает
-    const testGraphics = new Graphics();
-    testGraphics.beginFill(0xff0000);
-    testGraphics.drawRect(0, 0, 100, 100);
-    testGraphics.endFill();
-    testGraphics.x = 100;
-    testGraphics.y = 100;
-    this.app.stage.addChild(testGraphics);
-    console.log('Test rectangle added to stage');
-
     this.generateTextures();
     this.setupECS();
     this.buildIntersection();
@@ -77,9 +67,6 @@ class TrafficIntersection {
   private buildIntersection(): void {
     const intersection = new IntersectionPrefab(this.world);
     intersection.build();
-
-    console.log('Entities in world:', this.world.getEntitiesWithComponent('transform').length);
-    console.log('Sprites in world:', this.world.getEntitiesWithComponent('sprite').length);
   }
 
   private setupUI(): void {
@@ -100,10 +87,11 @@ class TrafficIntersection {
       this.controlPanel.update();
     });
 
-    for (let i = 0; i < 8; i++) {
+    // Создаем начальные машины
+    for (let i = 0; i < 6; i++) {
       setTimeout(() => {
         this.spawnSystem.spawnVehicleManually(this.world);
-      }, i * 500);
+      }, i * 800);
     }
   }
 }

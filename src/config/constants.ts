@@ -24,8 +24,8 @@ export const TRAFFIC = {
 } as const;
 
 export const COLLISION = {
-    VEHICLE_RADIUS: 24,
-    SAFE_DISTANCE: 65,
+    VEHICLE_RADIUS: 20,
+    SAFE_DISTANCE: 60,
     TURN_START_DISTANCE: 50,
     TURN_END_DISTANCE: 130,
     TURN_SPEED: 0.025

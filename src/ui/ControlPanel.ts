@@ -28,6 +28,10 @@ export class ControlPanel {
 
   private render(): void {
     this.container.innerHTML = `
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #00d2ff; margin-bottom: 5px;">🚦 Traffic Intersection</h2>
+        <p style="color: #aaa; font-size: 12px;">RAG-управляемый перекресток</p>
+      </div>
       ${this.statsPanel.render()}
       ${this.ragPanel.render()}
       ${this.controlButtons.render()}

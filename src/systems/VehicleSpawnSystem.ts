@@ -25,21 +25,41 @@ export class VehicleSpawnSystem extends System {
         if (vehicles.length >= TRAFFIC.MAX_VEHICLES) return;
 
         const entryLanes = world.getEntitiesWithComponent('lane')
-            .filter(e => e.getComponent<LaneComponent>('lane')?.isEntry);
+            .filter(e => {
+                const lane = e.getComponent<LaneComponent>('lane');
+                return lane?.isEntry;
+            });
 
         if (entryLanes.length === 0) return;
 
+        // Равномерно распределяем по всем полосам
         const lane = entryLanes[Math.floor(Math.random() * entryLanes.length)];
         this.vehicleFactory.createVehicle(lane);
     }
 
     spawnVehicleManually(world: World): void {
         const entryLanes = world.getEntitiesWithComponent('lane')
-            .filter(e => e.getComponent<LaneComponent>('lane')?.isEntry);
+            .filter(e => {
+                const lane = e.getComponent<LaneComponent>('lane');
+                return lane?.isEntry;
+            });
 
         if (entryLanes.length === 0) return;
 
+        // Выбираем случайную полосу
         const lane = entryLanes[Math.floor(Math.random() * entryLanes.length)];
         this.vehicleFactory.createVehicle(lane);
+    }
+
+    spawnVehiclesOnAllLanes(world: World): void {
+        const entryLanes = world.getEntitiesWithComponent('lane')
+            .filter(e => {
+                const lane = e.getComponent<LaneComponent>('lane');
+                return lane?.isEntry;
+            });
+
+        entryLanes.forEach(lane => {
+            this.vehicleFactory.createVehicle(lane);
+        });
     }
 }

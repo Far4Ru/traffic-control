@@ -2,8 +2,6 @@ import { World, System, Entity } from '../core/ecs';
 import { TransformComponent, VehicleComponent, CollisionComponent } from '../components';
 
 export class CollisionSystem extends System {
-  private collisionPairs: Map<string, boolean> = new Map();
-
   constructor() {
     super(60);
   }
@@ -11,19 +9,25 @@ export class CollisionSystem extends System {
   update(world: World, _deltaTime: number): void {
     const vehicles = world.getEntitiesWithComponent('vehicle');
 
+    // Сброс состояния коллизий
     for (const vehicle of vehicles) {
       const collision = vehicle.getComponent<CollisionComponent>('collision');
-      if (collision) collision.colliding = false;
+      if (collision) {
+        collision.colliding = false;
+        collision.stopped = false;
+        collision.collisionWith = undefined;
+      }
     }
 
+    // Проверка коллизий
     for (let i = 0; i < vehicles.length; i++) {
       for (let j = i + 1; j < vehicles.length; j++) {
-        this.checkAndHandleCollision(vehicles[i], vehicles[j]);
+        this.checkCollision(vehicles[i], vehicles[j]);
       }
     }
   }
 
-  private checkAndHandleCollision(v1: Entity, v2: Entity): void {
+  private checkCollision(v1: Entity, v2: Entity): void {
     const t1 = v1.getComponent<TransformComponent>('transform');
     const t2 = v2.getComponent<TransformComponent>('transform');
     const c1 = v1.getComponent<CollisionComponent>('collision');
@@ -39,13 +43,16 @@ export class CollisionSystem extends System {
     );
 
     if (distance < c1.radius + c2.radius) {
-      c1.setCollision(true, v2.id);
-      c2.setCollision(true, v1.id);
-      veh1.stop();
-      veh2.stop();
+      c1.colliding = true;
+      c1.stopped = true;
+      c1.collisionWith = v2.id;
 
-      const pairId = [v1.id, v2.id].sort().join('-');
-      this.collisionPairs.set(pairId, true);
+      c2.colliding = true;
+      c2.stopped = true;
+      c2.collisionWith = v1.id;
+
+      veh1.speed = 0;
+      veh2.speed = 0;
     }
   }
 
@@ -54,9 +61,11 @@ export class CollisionSystem extends System {
 
     for (const vehicle of vehicles) {
       const collision = vehicle.getComponent<CollisionComponent>('collision');
-      if (collision) collision.resolve();
+      if (collision) {
+        collision.colliding = false;
+        collision.stopped = false;
+        collision.collisionWith = undefined;
+      }
     }
-
-    this.collisionPairs.clear();
   }
 }

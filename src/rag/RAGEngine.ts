@@ -1,6 +1,6 @@
-import { VectorStore } from './VectorStore.ts';
-import { EmbeddingService } from './EmbeddingService.ts';
-import { PromptTemplates } from './PromptTemplates.ts';
+import { VectorStore } from './VectorStore';
+import { EmbeddingService } from './EmbeddingService';
+import { PromptTemplates } from './PromptTemplates';
 
 export interface RAGResult {
   action: string;
@@ -14,65 +14,58 @@ export class RAGEngine {
   private embeddingService: EmbeddingService;
   private templates: PromptTemplates;
   private cache: Map<string, RAGResult> = new Map();
-  
+  private initialized: boolean = false;
+
   constructor() {
     this.vectorStore = new VectorStore();
     this.embeddingService = new EmbeddingService();
     this.templates = new PromptTemplates();
-    
+
     this.initializeVectorStore();
   }
-  
+
   private async initializeVectorStore() {
     const behaviors = this.templates.getAllBehaviors();
-    
+
     for (const behavior of behaviors) {
       const embedding = await this.embeddingService.embed(behavior.description);
       this.vectorStore.add(embedding, behavior);
     }
+
+    this.initialized = true;
   }
-  
+
   async processPrompt(prompt: string): Promise<RAGResult> {
-    // Check cache
     const cacheKey = this.hashPrompt(prompt);
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
     }
-    
-    // Generate embedding for user prompt
+
     const promptEmbedding = await this.embeddingService.embed(prompt);
-    
-    // Find similar behaviors
     const similar = this.vectorStore.search(promptEmbedding, 3);
-    
-    // Interpolate behavior based on similarities
+
     const result = this.interpolateBehavior(similar, prompt);
-    
-    // Cache result
     this.cache.set(cacheKey, result);
-    
+
     return result;
   }
-  
+
   private interpolateBehavior(
     similar: Array<{ vector: number[], metadata: any, similarity: number }>,
     prompt: string
   ): RAGResult {
-    if (similar.length === 0) {
+    if (similar.length === 0 || similar[0].similarity < 0.5) {
       return this.getDefaultBehavior();
     }
-    
+
     const bestMatch = similar[0];
-    
-    // Extract parameters from prompt using simple NLP
     const parameters = this.extractParameters(prompt);
-    
-    // Merge with template parameters
+
     const mergedParams = {
       ...bestMatch.metadata.parameters,
       ...parameters
     };
-    
+
     return {
       action: bestMatch.metadata.action,
       parameters: mergedParams,
@@ -80,57 +73,63 @@ export class RAGEngine {
       explanation: this.generateExplanation(bestMatch.metadata, parameters)
     };
   }
-  
+
   private extractParameters(prompt: string): Record<string, any> {
     const params: Record<string, any> = {};
-    
-    // Extract speed
-    const speedMatch = prompt.match(/скорость\s+(\d+)/i);
-    if (speedMatch) {
-      params.speedMultiplier = parseInt(speedMatch[1]) / 50;
+    const lowerPrompt = prompt.toLowerCase();
+
+    // Скорость
+    if (lowerPrompt.includes('быстро') || lowerPrompt.includes('fast')) {
+      params.speedMultiplier = 1.5;
     }
-    
-    // Extract density
-    const densityMatch = prompt.match(/(больше|меньше|много|мало)\s+(машин|трафика)/i);
-    if (densityMatch) {
-      params.densityMultiplier = densityMatch[1] === 'больше' || densityMatch[1] === 'много' ? 2 : 0.5;
+    if (lowerPrompt.includes('медленно') || lowerPrompt.includes('slow')) {
+      params.speedMultiplier = 0.6;
     }
-    
-    // Extract traffic light mode
-    if (prompt.includes('без светофор')) {
+
+    // Плотность
+    if (lowerPrompt.includes('много машин') || lowerPrompt.includes('пробка') || lowerPrompt.includes('час пик')) {
+      params.densityMultiplier = 2.0;
+    }
+    if (lowerPrompt.includes('мало машин') || lowerPrompt.includes('свободн')) {
+      params.densityMultiplier = 0.5;
+    }
+
+    // Светофоры
+    if (lowerPrompt.includes('без светофор') || lowerPrompt.includes('отключи')) {
       params.trafficLightsEnabled = false;
     }
-    if (prompt.includes('со светофор')) {
+    if (lowerPrompt.includes('включи светофор')) {
       params.trafficLightsEnabled = true;
     }
-    
-    // Extract aggression level
-    if (prompt.includes('агрессивн')) {
-      params.aggressionLevel = 1.5;
+
+    // Агрессивность
+    if (lowerPrompt.includes('агрессивн')) {
+      params.aggressionLevel = 1.8;
     }
-    if (prompt.includes('осторожн')) {
+    if (lowerPrompt.includes('осторожн') || lowerPrompt.includes('аккуратн')) {
       params.aggressionLevel = 0.5;
     }
-    
+
     return params;
   }
-  
+
   private generateExplanation(behavior: any, params: Record<string, any>): string {
-    let explanation = `Применено поведение: ${behavior.description}. `;
-    
+    let explanation = `Применено: ${behavior.name}. `;
+
     if (params.speedMultiplier) {
-      explanation += `Скорость изменена на ${Math.round(params.speedMultiplier * 100)}%. `;
+      const speedPercent = Math.round(params.speedMultiplier * 100);
+      explanation += `Скорость ${speedPercent}%. `;
     }
     if (params.densityMultiplier) {
-      explanation += `Плотность трафика: ${params.densityMultiplier > 1 ? 'повышена' : 'понижена'}. `;
+      explanation += `Плотность ${params.densityMultiplier > 1 ? 'повышена' : 'понижена'}. `;
     }
     if (params.trafficLightsEnabled !== undefined) {
       explanation += `Светофоры ${params.trafficLightsEnabled ? 'включены' : 'отключены'}. `;
     }
-    
-    return explanation;
+
+    return explanation || 'Применено стандартное поведение.';
   }
-  
+
   private hashPrompt(prompt: string): string {
     let hash = 0;
     for (let i = 0; i < prompt.length; i++) {
@@ -140,7 +139,7 @@ export class RAGEngine {
     }
     return hash.toString(36);
   }
-  
+
   private getDefaultBehavior(): RAGResult {
     return {
       action: 'normal_flow',
