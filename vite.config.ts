@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/traffic-intersection/',
+  base: '/traffic-control/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
