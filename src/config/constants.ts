@@ -19,8 +19,8 @@ export const TRAFFIC = {
     GREEN_DURATION: 6000,
     YELLOW_DURATION: 2000,
     DEFAULT_SPEED_LIMIT: 2.5,
-    SPAWN_RATE: 0.015, // Увеличен для большего трафика
-    MAX_VEHICLES: 35
+    SPAWN_RATE: 0.045, // Увеличен с 0.015 до 0.045 для большего трафика
+    MAX_VEHICLES: 45    // Увеличен с 35 до 45
 } as const;
 
 export const COLLISION = {
