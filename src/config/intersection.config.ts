@@ -58,9 +58,14 @@ export const LANE_CONFIGS: LaneConfig[] = [
     { x: ROAD.ROAD_END, y: CY + LW * 1.5, rotation: Math.PI, direction: 'west', isEntry: false, side: 'left', arrowType: 'straight', speedLimit: 2.0 },
 ];
 
+// Исправлены позиции светофоров - теперь они посередине каждой дороги
 export const TRAFFIC_LIGHT_CONFIGS: TrafficLightConfig[] = [
-    { x: CX - LW * 2.5, y: CY - LW * 2, rotation: 0, phase: 0 },      // север
-    { x: CX + LW * 2.5, y: CY + LW * 2, rotation: Math.PI, phase: 1 }, // юг
-    { x: CX + LW * 2, y: CY + LW * 2.5, rotation: Math.PI / 2, phase: 2 }, // восток
-    { x: CX - LW * 2, y: CY - LW * 2.5, rotation: -Math.PI / 2, phase: 3 }, // запад
+    // Северный светофор (для машин едущих с севера на юг) - по центру вертикальной дороги
+    { x: CX, y: CY - LW * 3, rotation: -Math.PI / 2, phase: 0 },
+    // Южный светофор (для машин едущих с юга на север) - по центру вертикальной дороги
+    { x: CX, y: CY + LW * 3, rotation: Math.PI / 2, phase: 1 },
+    // Восточный светофор (для машин едущих с востока на запад) - по центру горизонтальной дороги
+    { x: CX + LW * 3, y: CY, rotation: 0, phase: 2 },
+    // Западный светофор (для машин едущих с запада на восток) - по центру горизонтальной дороги
+    { x: CX - LW * 3, y: CY, rotation: Math.PI, phase: 3 },
 ];

@@ -4,7 +4,9 @@ import { SCENE, PHASE_MAP } from '../config/constants';
 
 export class VehicleMovementSystem extends System {
   private readonly SAFE_DISTANCE = 60;
-  private readonly INTERSECTION_ZONE = 80;
+  private readonly INTERSECTION_ZONE = 100;
+  private readonly STOP_LINE_DISTANCE = 120; // Увеличенная дистанция остановки
+  private readonly STOP_BUFFER = 30; // Дополнительный буфер остановки
 
   constructor() {
     super(50);
@@ -25,11 +27,34 @@ export class VehicleMovementSystem extends System {
       const laneComp = lane?.getComponent<LaneComponent>('lane');
       if (!laneComp) continue;
 
-      const canGo = this.canProceed(vehicle, world, laneComp);
-      const hasVehicleAhead = this.checkVehicleAhead(vehicle, world);
-      const shouldYield = this.shouldYieldToRight(vehicle, world);
+      // Проверяем, находится ли машина уже на перекрестке
+      const distToCenter = this.getDistanceToCenter(transform);
+      const isOnIntersection = distToCenter < this.INTERSECTION_ZONE;
 
-      if (canGo && !hasVehicleAhead && !shouldYield) {
+      // Получаем расстояние до стоп-линии
+      const distToStopLine = this.getDistanceToStopLine(transform, laneComp);
+
+      // Проверяем, нужно ли остановиться перед перекрестком
+      const shouldStopForLight = this.shouldStopForTrafficLight(vehicle, world, laneComp, distToStopLine);
+      const hasVehicleAhead = this.checkVehicleAhead(vehicle, world);
+      const shouldYield = this.shouldYieldToRight(vehicle, world, isOnIntersection);
+
+      // Если машина уже на перекрестке - всегда едет (завершает маневр)
+      if (isOnIntersection) {
+        vehicleComp.targetSpeed = vehicleComp.maxSpeed;
+        vehicleComp.accelerate(deltaTime);
+      }
+      // Если нужно остановиться перед перекрестком на красный
+      else if (shouldStopForLight && !isOnIntersection) {
+        vehicleComp.targetSpeed = 0;
+        vehicleComp.brake(deltaTime);
+
+        // Плавная остановка с дополнительным торможением при приближении
+        if (distToStopLine < 40) {
+          vehicleComp.speed = Math.max(0, vehicleComp.speed - 0.5 * deltaTime);
+        }
+      }
+      else if (!hasVehicleAhead && !shouldYield) {
         vehicleComp.targetSpeed = vehicleComp.maxSpeed;
         vehicleComp.accelerate(deltaTime);
       } else {
@@ -45,44 +70,68 @@ export class VehicleMovementSystem extends System {
     }
   }
 
-  private canProceed(vehicle: Entity, world: World, laneComp: LaneComponent): boolean {
-    const transform = vehicle.getComponent<TransformComponent>('transform');
-    if (!transform) return false;
+  private getDistanceToStopLine(transform: TransformComponent, laneComp: LaneComponent): number {
+    const CX = SCENE.CENTER_X;
+    const CY = SCENE.CENTER_Y;
+    const STOP_OFFSET = 10; // Расстояние от центра до стоп-линии
 
-    const distToCenter = this.getDistanceToCenter(transform);
+    let stopLineX = CX;
+    let stopLineY = CY;
 
-    // Если далеко от перекрестка - можно ехать
-    if (distToCenter > this.INTERSECTION_ZONE + 40) return true;
-    // Если на перекрестке - продолжаем движение
-    if (distToCenter < 30) return true;
+    switch (laneComp.direction) {
+      case 'north':
+        stopLineY = CY - STOP_OFFSET;
+        break;
+      case 'south':
+        stopLineY = CY + STOP_OFFSET;
+        break;
+      case 'east':
+        stopLineX = CX + STOP_OFFSET;
+        break;
+      case 'west':
+        stopLineX = CX - STOP_OFFSET;
+        break;
+    }
 
+    const dx = stopLineX - transform.position.x;
+    const dy = stopLineY - transform.position.y;
+    const forward = transform.getRight();
+
+    // Проекция на направление движения
+    const dot = dx * forward.x + dy * forward.y;
+
+    return Math.max(0, dot);
+  }
+
+  private shouldStopForTrafficLight(
+    vehicle: Entity,
+    world: World,
+    laneComp: LaneComponent,
+    distToStopLine: number
+  ): boolean {
+    // Если далеко от стоп-линии - не останавливаемся
+    if (distToStopLine > this.STOP_LINE_DISTANCE) return false;
+
+    // Проверяем светофор
     const lights = world.getEntitiesWithComponent('trafficLight');
-
-    // Проверяем, включены ли светофоры
     let lightsEnabled = true;
     if (lights.length > 0) {
       const firstLight = lights[0].getComponent<TrafficLightComponent>('trafficLight');
       lightsEnabled = firstLight?.enabled ?? true;
     }
 
-    // Если светофоры выключены - можно ехать (правило правой руки будет применено отдельно)
-    if (!lightsEnabled) return true;
+    // Если светофоры выключены - не останавливаемся (правило правой руки)
+    if (!lightsEnabled) return false;
 
-    // Нормальная работа светофоров
-    const lanePhase = PHASE_MAP[laneComp.direction];
+    // Проверяем, нужно ли остановиться на красный
+    const isNorthSouth = (laneComp.direction === 'north' || laneComp.direction === 'south');
+    const isEastWest = (laneComp.direction === 'east' || laneComp.direction === 'west');
 
     for (const light of lights) {
       const lightComp = light.getComponent<TrafficLightComponent>('trafficLight');
       if (!lightComp) continue;
 
-      // Определяем, относится ли светофор к нашему направлению
       let isOurLight = false;
-
-      // Север-Юг (фазы 0 и 1)
-      const isNorthSouth = (laneComp.direction === 'north' || laneComp.direction === 'south');
-      // Восток-Запад (фазы 2 и 3)
-      const isEastWest = (laneComp.direction === 'east' || laneComp.direction === 'west');
-
       if (isNorthSouth && (lightComp.phase === 0 || lightComp.phase === 1)) {
         isOurLight = true;
       }
@@ -91,23 +140,26 @@ export class VehicleMovementSystem extends System {
       }
 
       if (isOurLight) {
-        // Можно ехать только на зеленый
-        return lightComp.state === 'green';
+        // Останавливаемся на красный
+        // На желтый останавливаемся только если достаточно близко к стоп-линии
+        if (lightComp.state === 'red') return true;
+        if (lightComp.state === 'yellow' && distToStopLine < 50) return true;
+        return false;
       }
     }
 
-    return true;
+    return false;
   }
 
-  private shouldYieldToRight(vehicle: Entity, world: World): boolean {
+  private shouldYieldToRight(vehicle: Entity, world: World, isOnIntersection: boolean): boolean {
     const transform = vehicle.getComponent<TransformComponent>('transform');
     const vehicleComp = vehicle.getComponent<VehicleComponent>('vehicle');
     if (!transform || !vehicleComp) return false;
 
     const distToCenter = this.getDistanceToCenter(transform);
 
-    // Только в зоне перекрестка
-    if (distToCenter > this.INTERSECTION_ZONE) return false;
+    // Только в зоне перекрестка или близко к нему
+    if (distToCenter > this.INTERSECTION_ZONE + 50) return false;
 
     const lights = world.getEntitiesWithComponent('trafficLight');
     let lightsEnabled = true;
@@ -119,11 +171,13 @@ export class VehicleMovementSystem extends System {
     // Правило правой руки работает только когда светофоры выключены
     if (lightsEnabled) return false;
 
+    // Если уже на перекрестке - имеем приоритет
+    if (isOnIntersection) return false;
+
     // Получаем направление движения и правую сторону
     const forward = transform.getRight();
 
     // Правая сторона относительно направления движения
-    // Для правостороннего движения: поворот на 90 градусов по часовой стрелке
     const rightDirection = {
       x: forward.y,
       y: -forward.x
@@ -138,7 +192,7 @@ export class VehicleMovementSystem extends System {
       if (!otherTransform || !otherVehicle) continue;
 
       const otherDist = this.getDistanceToCenter(otherTransform);
-      if (otherDist > this.INTERSECTION_ZONE) continue;
+      if (otherDist > this.INTERSECTION_ZONE + 30) continue;
 
       // Проверяем, находится ли другая машина справа
       const dx = otherTransform.position.x - transform.position.x;
@@ -146,9 +200,7 @@ export class VehicleMovementSystem extends System {
 
       const dotRight = dx * rightDirection.x + dy * rightDirection.y;
 
-      // Если машина справа и расстояние меньше безопасного
       if (dotRight > 0 && Math.abs(dotRight) < this.SAFE_DISTANCE + 30) {
-        // Также проверяем, что машина движется перпендикулярно (пересекает наш путь)
         const otherForward = otherTransform.getRight();
         const crossProduct = Math.abs(forward.x * otherForward.y - forward.y * otherForward.x);
 
@@ -159,15 +211,6 @@ export class VehicleMovementSystem extends System {
     }
 
     return false;
-  }
-
-  private getRightDirection(vehicle: VehicleComponent, transform: TransformComponent): { x: number, y: number } {
-    // Направление вправо относительно движения
-    const forward = transform.getRight();
-    return {
-      x: forward.y,
-      y: -forward.x
-    };
   }
 
   private checkVehicleAhead(vehicle: Entity, world: World): boolean {
@@ -184,7 +227,6 @@ export class VehicleMovementSystem extends System {
       const otherVehicle = other.getComponent<VehicleComponent>('vehicle');
       if (!otherTransform || !otherVehicle) continue;
 
-      // Только машины на той же полосе
       if (otherVehicle.laneId !== vehicleComp.laneId) continue;
 
       const dx = otherTransform.position.x - transform.position.x;

@@ -7,6 +7,7 @@ export class TrafficLightSystem extends System {
   private currentPhase: number = 0; // 0: север-юг зеленый, 1: восток-запад зеленый
   private phaseTimer: number = 0;
   private isYellowPhase: boolean = false;
+  private yellowStartTime: number = 0;
 
   constructor() {
     super(30);
@@ -50,6 +51,7 @@ export class TrafficLightSystem extends System {
         // Переключаемся на желтый
         this.isYellowPhase = true;
         this.phaseTimer = 0;
+        this.yellowStartTime = this.globalTimer;
 
         // Устанавливаем желтый для текущей фазы
         lights.forEach(light => {
@@ -115,6 +117,7 @@ export class TrafficLightSystem extends System {
     this.currentPhase = 0;
     this.phaseTimer = 0;
     this.isYellowPhase = false;
+    this.yellowStartTime = 0;
   }
 
   getCurrentPhase(): number {
@@ -123,5 +126,32 @@ export class TrafficLightSystem extends System {
 
   isYellow(): boolean {
     return this.isYellowPhase;
+  }
+
+  getTimeUntilGreen(direction: 'north-south' | 'east-west'): number {
+    if (!this.isYellowPhase) {
+      const isNorthSouthGreen = this.currentPhase === 0;
+      if ((direction === 'north-south' && isNorthSouthGreen) ||
+        (direction === 'east-west' && !isNorthSouthGreen)) {
+        return 0;
+      }
+    }
+
+    const yellowRemaining = this.isYellowPhase ?
+      (TRAFFIC.YELLOW_DURATION - this.phaseTimer) / 1000 : 0;
+
+    if (this.currentPhase === 0) {
+      // Сейчас горит север-юг
+      if (direction === 'east-west') {
+        return (this.phaseTimer + yellowRemaining + TRAFFIC.GREEN_DURATION) / 1000;
+      }
+    } else {
+      // Сейчас горит восток-запад
+      if (direction === 'north-south') {
+        return (this.phaseTimer + yellowRemaining + TRAFFIC.GREEN_DURATION) / 1000;
+      }
+    }
+
+    return yellowRemaining;
   }
 }

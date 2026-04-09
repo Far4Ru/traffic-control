@@ -11,7 +11,7 @@ export const ROAD = {
     TOTAL_LANES: 4,
     ROAD_WIDTH: 160,
     ROAD_START: 200,
-    ROAD_END: 824
+    ROAD_END: 1280
 } as const;
 
 export const TRAFFIC = {
@@ -19,8 +19,8 @@ export const TRAFFIC = {
     GREEN_DURATION: 6000,
     YELLOW_DURATION: 2000,
     DEFAULT_SPEED_LIMIT: 2.5,
-    SPAWN_RATE: 0.015,
-    MAX_VEHICLES: 30
+    SPAWN_RATE: 0.015, // Увеличен для большего трафика
+    MAX_VEHICLES: 35
 } as const;
 
 export const COLLISION = {

@@ -5,6 +5,7 @@ import { TRAFFIC } from '../config/constants';
 
 export class VehicleSpawnSystem extends System {
     private vehicleFactory!: VehicleFactory;
+    private spawnCooldown: Map<string, number> = new Map();
 
     constructor() {
         super(10);
@@ -14,7 +15,15 @@ export class VehicleSpawnSystem extends System {
         this.vehicleFactory = new VehicleFactory(world);
     }
 
-    update(world: World, _deltaTime: number): void {
+    update(world: World, deltaTime: number): void {
+        for (const [laneId, cooldown] of this.spawnCooldown.entries()) {
+            if (cooldown <= 0) {
+                this.spawnCooldown.delete(laneId);
+            } else {
+                this.spawnCooldown.set(laneId, cooldown - deltaTime);
+            }
+        }
+
         if (Math.random() < TRAFFIC.SPAWN_RATE) {
             this.trySpawnVehicle(world);
         }
@@ -32,9 +41,28 @@ export class VehicleSpawnSystem extends System {
 
         if (entryLanes.length === 0) return;
 
-        // Равномерно распределяем по всем полосам
-        const lane = entryLanes[Math.floor(Math.random() * entryLanes.length)];
-        this.vehicleFactory.createVehicle(lane);
+        // Перемешиваем массив для равномерного распределения
+        const shuffled = [...entryLanes];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        // Пробуем создать машину на случайной полосе
+        for (const lane of shuffled) {
+            const laneComp = lane.getComponent<LaneComponent>('lane');
+            if (!laneComp) continue;
+
+            // Проверяем кулдаун для этой полосы
+            if (this.spawnCooldown.has(lane.id)) continue;
+
+            const result = this.vehicleFactory.createVehicle(lane);
+            if (result) {
+                // Устанавливаем кулдаун для этой полосы
+                this.spawnCooldown.set(lane.id, 60); // 1 секунда при 60fps
+                break;
+            }
+        }
     }
 
     spawnVehicleManually(world: World): void {
@@ -46,9 +74,20 @@ export class VehicleSpawnSystem extends System {
 
         if (entryLanes.length === 0) return;
 
-        // Выбираем случайную полосу
-        const lane = entryLanes[Math.floor(Math.random() * entryLanes.length)];
-        this.vehicleFactory.createVehicle(lane);
+        // Перемешиваем для ручного спавна
+        const shuffled = [...entryLanes];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        for (const lane of shuffled) {
+            const laneComp = lane.getComponent<LaneComponent>('lane');
+            if (!laneComp) continue;
+
+            const result = this.vehicleFactory.createVehicle(lane);
+            if (result) break;
+        }
     }
 
     spawnVehiclesOnAllLanes(world: World): void {

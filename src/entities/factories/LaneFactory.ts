@@ -1,16 +1,8 @@
 import { World, Entity } from '../../core/ecs';
 import { TransformComponent, LaneComponent, SpriteComponent } from '../../components';
+import { SpeedSignComponent } from '../../components/SpeedSignComponent';
 import { LaneConfig } from '../../config/intersection.config';
 import { SCENE, ROAD } from '../../config/constants';
-
-class SpeedSignComponent {
-    type = 'speedSign';
-    speed: number;
-
-    constructor(speed: number) {
-        this.speed = speed;
-    }
-}
 
 export class LaneFactory {
     constructor(private world: World) { }
@@ -39,26 +31,33 @@ export class LaneFactory {
 
     private createArrow(config: LaneConfig): void {
         const arrow = this.world.createEntity();
-        const offset = 100;
+        const offset = 80;
         let arrowX = config.x;
         let arrowY = config.y;
         let arrowRotation = config.rotation;
 
+        const CX = SCENE.CENTER_X;
+        const CY = SCENE.CENTER_Y;
+
         switch (config.direction) {
             case 'north':
-                arrowY = config.y + offset;
+                arrowY = config.y + offset + 64;
+                arrowX = config.x;
                 arrowRotation = Math.PI / 2;
                 break;
             case 'south':
-                arrowY = config.y - offset;
+                arrowY = config.y - offset - 520;
+                arrowX = config.x;
                 arrowRotation = -Math.PI / 2;
                 break;
             case 'east':
-                arrowX = config.x - offset;
+                arrowX = config.x - offset - 400;
+                arrowY = config.y;
                 arrowRotation = Math.PI;
                 break;
             case 'west':
-                arrowX = config.x + offset;
+                arrowX = config.x + offset + 200;
+                arrowY = config.y;
                 arrowRotation = 0;
                 break;
         }
@@ -70,35 +69,33 @@ export class LaneFactory {
 
     private createSpeedSign(config: LaneConfig): void {
         const sign = this.world.createEntity();
-        const offset = 130;
+        const offset = 140;
         let signX = config.x;
         let signY = config.y;
 
-        const LW = ROAD.LANE_WIDTH;
         const CX = SCENE.CENTER_X;
         const CY = SCENE.CENTER_Y;
 
         switch (config.direction) {
             case 'north':
-                signY = config.y + offset;
-                signX = config.x - 30;
+                signY = config.y + offset - 30;
+                signX = config.x;
                 break;
             case 'south':
-                signY = config.y - offset;
-                signX = config.x + 30;
+                signY = config.y - offset - 420;
+                signX = config.x;
                 break;
             case 'east':
-                signX = config.x - offset;
-                signY = config.y - 20;
+                signX = config.x - offset - 305;
+                signY = config.y;
                 break;
             case 'west':
-                signX = config.x + offset;
-                signY = config.y + 20;
+                signX = config.x + offset + 105;
+                signY = config.y;
                 break;
         }
 
         sign.addComponent(new TransformComponent(signX, signY, 0));
-        const speedSignComp = new SpeedSignComponent(config.speedLimit);
-        (sign as any).addComponent(speedSignComp.type, speedSignComp);
+        sign.addComponent(new SpeedSignComponent(config.speedLimit));
     }
 }

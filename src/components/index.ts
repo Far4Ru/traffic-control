@@ -4,3 +4,4 @@ export { TrafficLightComponent } from './TrafficLightComponent';
 export { LaneComponent } from './LaneComponent';
 export { CollisionComponent } from './CollisionComponent';
 export { SpriteComponent } from './SpriteComponent';
+export { SpeedSignComponent } from './SpeedSignComponent';
