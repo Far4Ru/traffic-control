@@ -18,7 +18,7 @@ export class ControlButtons {
   render(): string {
     return `
       <div class="control-section">
-        <h3>🎮 Управление</h3>
+        <h3>Управление</h3>
         <button id="reset-collisions" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;">
           Сбросить коллизии
         </button>
