@@ -9,10 +9,10 @@ OUTPUT_FILE="project_files.txt"
 # Находим все файлы, исключая node_modules и dist
 find . -type f \
     -not -path "*/node_modules/*" \
-    -not -path "*/dist/*" \
+    -not -path "*/docs/*" \
     -not -path "*/.git/*" \
     -not -path "./node_modules/*" \
-    -not -path "./dist/*" \
+    -not -path "./docs/*" \
     -not -path "./.git/*" \
     -not -path "./project_files.txt" \
     -not -path "./script.sh" \
