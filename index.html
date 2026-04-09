@@ -3,9 +3,225 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Управление перекрестком</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Управление перекрестком | RAG Traffic Control</title>
   <link rel="stylesheet" href="/src/style.css">
+  <style>
+    /* Дополнительные стили для адаптивности */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #canvas-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #16213e;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #scene-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    #control-panel {
+      width: 350px;
+      background: #0f3460;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    /* Адаптивность для планшетов */
+    @media (max-width: 1024px) {
+      #control-panel {
+        width: 300px;
+        padding: 15px;
+        gap: 15px;
+      }
+
+      .control-section h3 {
+        font-size: 14px;
+      }
+
+      .stat-value {
+        font-size: 16px;
+      }
+    }
+
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 768px) {
+      #app {
+        flex-direction: column;
+      }
+
+      #canvas-container {
+        flex: 2;
+        min-height: 0;
+      }
+
+      #control-panel {
+        width: 100%;
+        max-height: 40%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 12px;
+        gap: 12px;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .control-section {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px;
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+
+      .stat-item {
+        padding: 6px;
+      }
+
+      .stat-value {
+        font-size: 14px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+      }
+
+      .prompt-input {
+        min-height: 60px;
+        font-size: 12px;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .template-btn {
+        padding: 6px;
+        font-size: 10px;
+      }
+
+      .rag-status {
+        font-size: 10px;
+      }
+    }
+
+    /* Для очень маленьких экранов */
+    @media (max-width: 480px) {
+      #control-panel {
+        max-height: 45%;
+        padding: 10px;
+        gap: 8px;
+      }
+
+      .control-section {
+        min-width: 160px;
+        padding: 8px;
+      }
+
+      .control-section h3 {
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .stat-value {
+        font-size: 12px;
+      }
+
+      .btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+
+      .prompt-input {
+        min-height: 50px;
+        font-size: 11px;
+        padding: 8px;
+      }
+    }
+
+    /* Для альбомной ориентации на мобильных */
+    @media (max-width: 900px) and (orientation: landscape) {
+      #control-panel {
+        max-height: 100%;
+        width: 280px;
+        flex-direction: column;
+      }
+
+      #canvas-container {
+        flex: 1;
+      }
+
+      .control-section {
+        padding: 8px;
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Кастомный скроллбар для панели управления */
+    #control-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #control-panel::-webkit-scrollbar-track {
+      background: #0f3460;
+      border-radius: 3px;
+    }
+
+    #control-panel::-webkit-scrollbar-thumb {
+      background: #e94560;
+      border-radius: 3px;
+    }
+
+    #control-panel::-webkit-scrollbar-thumb:hover {
+      background: #ff6b6b;
+    }
+
+    /* Анимация для панели при изменении размера */
+    .control-section {
+      transition: all 0.2s ease;
+    }
+
+    .control-section:hover {
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
 
 <body>
